@@ -2,7 +2,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -57,7 +56,7 @@ namespace MisskeyEmojiNotify.Misskey
         {
             try
             {
-                using var stream = File.Open(EnvVar.ArchiveFile, FileMode.OpenOrCreate);
+                using var stream = File.Open(EnvVar.ArchiveFile, FileMode.Create);
                 await JsonSerializer.SerializeAsync(stream, emojisByName.Values);
 
                 return true;

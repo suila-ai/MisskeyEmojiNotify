@@ -31,11 +31,18 @@ namespace MisskeyEmojiNotify.Misskey
 
         private async Task CheckVersion()
         {
-            var meta = await misskey.PostAsync<MetaParams, Meta>("meta", new() { Detail = false });
-            var majerVersion = meta.Version.Split('.')[0];
-            if (int.TryParse(majerVersion, out var version))
+            try
             {
-                if (version < 13) isOldVersion = true;
+                var meta = await misskey.PostAsync<MetaParams, Meta>("meta", new() { Detail = false });
+                var majerVersion = meta.Version.Split('.')[0];
+                if (int.TryParse(majerVersion, out var version))
+                {
+                    if (version < 13) isOldVersion = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine(ex);
             }
         }
 
