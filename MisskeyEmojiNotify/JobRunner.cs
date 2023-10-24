@@ -1,11 +1,9 @@
 ﻿using MisskeyEmojiNotify.Misskey;
-using MisskeySharp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Text;
-using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace MisskeyEmojiNotify
@@ -109,7 +107,7 @@ namespace MisskeyEmojiNotify
                 $"$[x2 :{e.Name}:] ({e.Name})\n" +
                 $"カテゴリ: {e.Category ?? "(なし)"}\n" +
                 $"タグ: {string.Join(' ', e.Aliases)}\n" +
-                $"[画像]({e.Url})"));
+                $"?[画像]({TrickUrl(e.Url)})"));
 
             await apiWrapper.Post(text);
         }
@@ -117,7 +115,7 @@ namespace MisskeyEmojiNotify
         private async Task PostDeleteEmojis(List<Emoji> emojis)
         {
             if (emojis.Count == 0) return;
-            var text = "【絵文字削除】\n" + string.Join("\n\n", emojis.Select(e => $"{e.Name}\n[旧画像]({e.Url})"));
+            var text = "【絵文字削除】\n" + string.Join("\n\n", emojis.Select(e => $"{e.Name}\n?[旧画像]({TrickUrl(e.Url)})"));
 
             await apiWrapper.Post(text);
         }
@@ -155,7 +153,7 @@ namespace MisskeyEmojiNotify
             {
                 var text = $"$[x2 :{e.name}:] ({e.name})\n";
                 if (e.add.Length > 0) text += $"追加: {e.add}\n";
-                if (e.add.Length > 0) text += $"削除: {e.add}\n";
+                if (e.delete.Length > 0) text += $"削除: {e.delete}\n";
 
                 return text;
             }));
@@ -167,9 +165,20 @@ namespace MisskeyEmojiNotify
         {
             if (changes.Count == 0) return;
 
-            var text = "【画像変更】\n" + string.Join("\n\n", changes.Select(e => $"$[x2 :{e.New.Name}:] ({e.New.Name})\n[旧画像]({e.Old.Url}) [新画像]({e.New.Url})"));
+            var text = "【画像変更】\n" + string.Join("\n\n", changes.Select(e => $"$[x2 :{e.New.Name}:] ({e.New.Name})\n?[旧画像]({TrickUrl(e.Old.Url)}) ?[新画像]({TrickUrl(e.New.Url)})"));
 
             await apiWrapper.Post(text);
+        }
+
+        private string TrickUrl(string url)
+        {
+            if (url.StartsWith(EnvVar.MisskeyServer))
+            {
+                var replaced = Regex.Replace(url, "^(https?://)", "$1/");
+                return replaced;
+            }
+
+            return url;
         }
 
         private record Change(Emoji Old, Emoji New);
