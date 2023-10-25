@@ -47,7 +47,11 @@ namespace MisskeyEmojiNotify
                 var timer = Task.Delay(EnvVar.CheckInterval);
 
                 var newEmojis = await apiWrapper.GetEmojis();
-                if (newEmojis == null) break;
+                if (newEmojis == null)
+                {
+                    await timer;
+                    continue;
+                }
 
                 var addList = new List<Emoji>();
                 var nameChanges = new List<Change>();
