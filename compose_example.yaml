@@ -1,0 +1,23 @@
+services:
+  tajimi-now:
+    image: ghcr.io/suila-ai/misskey-emoji-notify:1.0
+    # ローカルビルド用
+    # build: .
+
+    restart: always
+
+    environment:
+      # MisskeyサーバのURL
+      MISSKEY_SERVER: https://misskey.example.com/
+      # APIトークン (必須権限: write:notes)
+      MISSKEY_TOKEN: ExampleToken
+
+      # 絵文字一覧確認間隔(秒)
+      MISSKEY_CHECK_INTERVAL: 600
+      # ノートの公開範囲 有効値: public, home, followers, specified
+      MISSKEY_VISIBILITY: home
+      # 永続化データ保存先(コンテナ内)
+      MISSKEY_ARCHIVE_FILE: /app/data/archive.json
+
+    volumes:
+      - "./data:/app/data"
