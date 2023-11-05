@@ -1,5 +1,5 @@
 services:
-  tajimi-now:
+  emoji-notify:
     image: ghcr.io/suila-ai/misskey-emoji-notify:1.0
     # ローカルビルド用
     # build: .
