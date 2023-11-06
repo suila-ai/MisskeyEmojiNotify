@@ -38,11 +38,14 @@ namespace MisskeyEmojiNotify.Misskey
                 if (int.TryParse(majerVersion, out var version))
                 {
                     if (version < 13) isOldVersion = true;
+
+                    Console.Error.WriteLine($"{nameof(CheckVersion)}: {version}");
                 }
+
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine(ex);
+                Console.Error.WriteLine($"{nameof(CheckVersion)}: {ex}");
             }
         }
 
@@ -53,11 +56,14 @@ namespace MisskeyEmojiNotify.Misskey
                 try
                 {
                     var meta = await misskey.PostAsync<MetaParams, Meta>("meta", new() { Detail = false });
+
+                    Console.Error.WriteLine($"{nameof(GetEmojis)}: Found {meta.Emojis?.Count}");
+
                     return meta.Emojis;
                 }
                 catch (Exception ex)
                 {
-                    Console.Error.WriteLine(ex);
+                    Console.Error.WriteLine($"{nameof(GetEmojis)}: {ex}");
                 }
             }
             else
@@ -65,11 +71,14 @@ namespace MisskeyEmojiNotify.Misskey
                 try
                 {
                     var emojis = await misskey.PostAsync<MisskeyApiEntitiesBase, EmojisEntity>("emojis", emptyEntity);
+
+                    Console.Error.WriteLine($"{nameof(GetEmojis)}: Found {emojis.Emojis.Count}");
+
                     return emojis.Emojis;
                 }
                 catch (Exception ex)
                 {
-                    Console.Error.WriteLine(ex);
+                    Console.Error.WriteLine($"{nameof(GetEmojis)}: {ex}");
                 }
             }
 
@@ -86,11 +95,13 @@ namespace MisskeyEmojiNotify.Misskey
                     Visibility = EnvVar.Visibility
                 });
 
+                Console.Error.WriteLine($"{nameof(Post)}: {text}");
+
                 return true;
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine(ex);
+                Console.Error.WriteLine($"{nameof(Post)}: {ex}");
             }
 
             return false;
