@@ -110,7 +110,7 @@ namespace MisskeyEmojiNotify
             var text = "【絵文字追加】\n" + string.Join("\n\n", emojis.Select(e =>
                 $"$[x2 :{e.Name}:] ({e.Name})\n" +
                 $"カテゴリ: {e.Category ?? "(なし)"}\n" +
-                $"タグ: {string.Join(' ', e.Aliases)}\n" +
+                $"タグ: {(e.Aliases.Count > 0 ? string.Join(' ', e.Aliases) : "(なし)")}\n" +
                 $"?[画像]({TrickUrl(e.Url)})"));
 
             await apiWrapper.Post(text);
