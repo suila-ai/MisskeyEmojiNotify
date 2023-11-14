@@ -13,7 +13,6 @@ namespace MisskeyEmojiNotify
         private readonly ApiWrapper apiWrapper;
         private EmojiStore emojiStore;
 
-
         public static async Task<JobRunner?> Create()
         {
             var apiWrapper = await ApiWrapper.Create();
@@ -99,6 +98,7 @@ namespace MisskeyEmojiNotify
 
                 emojiStore = new(newEmojis);
                 await emojiStore.SaveArchive();
+                await emojiStore.SaveImages();
 
                 await timer;
             }

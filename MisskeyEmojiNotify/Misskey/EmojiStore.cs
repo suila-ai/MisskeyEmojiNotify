@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Web;
 
 namespace MisskeyEmojiNotify.Misskey
 {
@@ -12,6 +13,8 @@ namespace MisskeyEmojiNotify.Misskey
     {
         private readonly Dictionary<string, Emoji> emojisByName = new();
         private readonly Dictionary<string, Emoji> emojisByImage = new();
+
+        private readonly HttpClient httpClient = new();
 
         public int Count => emojisByName.Values.Count;
 
@@ -25,7 +28,7 @@ namespace MisskeyEmojiNotify.Misskey
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine(ex);
+                Console.Error.WriteLine($"{nameof(LoadArchive)}: {ex}");
             }
 
             return null;
@@ -63,10 +66,61 @@ namespace MisskeyEmojiNotify.Misskey
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine(ex);
+                Console.Error.WriteLine($"{nameof(SaveArchive)}: {ex}");
             }
 
             return false;
+        }
+
+        public async Task<bool> SaveImages(bool force = false)
+        {
+            DirectoryInfo dir;
+            try
+            {
+                dir = Directory.CreateDirectory(EnvVar.ImageDir);
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"{nameof(SaveImages)}: {ex}");
+                return false;
+            }
+
+            List<string> urls;
+            if (force)
+            {
+                urls = emojisByImage.Keys.ToList();
+            }
+            else
+            {
+                urls = emojisByImage.Keys.Except(dir.EnumerateFiles().Select(e => HttpUtility.UrlDecode(e.Name))).ToList();
+            }
+
+            var succeeded = true;
+
+            foreach (var url in urls)
+            {
+                var path = Path.Combine(dir.FullName, HttpUtility.UrlEncode(url));
+                try
+                {
+                    var res = await httpClient.GetStreamAsync(url);
+                    using var file = File.Open(path, FileMode.Create);
+                    await res.CopyToAsync(file);
+                }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine($"{nameof(SaveImages)}: {ex}");
+
+                    try
+                    {
+                        File.Delete(path);
+                    }
+                    catch { }
+
+                    succeeded = false;
+                }
+            }
+
+            return succeeded;
         }
 
         public IEnumerator<Emoji> GetEnumerator() => emojisByName.Values.GetEnumerator();
