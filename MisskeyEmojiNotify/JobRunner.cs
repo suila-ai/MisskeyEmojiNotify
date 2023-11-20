@@ -1,4 +1,5 @@
-﻿using MisskeyEmojiNotify.Misskey;
+﻿using ImageMagick;
+using MisskeyEmojiNotify.Misskey;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,7 +13,6 @@ namespace MisskeyEmojiNotify
     {
         private readonly ApiWrapper apiWrapper;
         private EmojiStore emojiStore;
-
 
         public static async Task<JobRunner?> Create()
         {
@@ -100,6 +100,9 @@ namespace MisskeyEmojiNotify
                 emojiStore = new(newEmojis);
                 await emojiStore.SaveArchive();
 
+                var count = await emojiStore.SaveImages();
+                if (count > 0) await UpdateBanner();
+
                 await timer;
             }
         }
@@ -174,7 +177,72 @@ namespace MisskeyEmojiNotify
             await apiWrapper.Post(text);
         }
 
-        private string TrickUrl(string url)
+        private async Task UpdateBanner()
+        {
+            var montage = await CreateMontage();
+            using var stream = new MemoryStream(montage);
+            await apiWrapper.SetBanner(stream, "image/png");
+        }
+
+        private Task<byte[]> CreateMontage()
+        {
+            return Task.Run(() =>
+            {
+                using var images = new MagickImageCollection();
+
+                var tile = CalcTileGeometry(emojiStore.Count, 2.0);
+                var size = new MagickGeometry(1100, 0);
+                var tileSize = new MagickGeometry(size.Width / tile.Width);
+
+                foreach (var emoji in emojiStore)
+                {
+                    var image = new MagickImage(EmojiStore.GetImagePath(emoji));
+                    image.Resize(tileSize);
+                    images.Add(image);
+                }
+
+                var margin = (int)(tileSize.Width * 0.05);
+                using var montage = images.Montage(new MontageSettings()
+                {
+                    TileGeometry = tile,
+                    Geometry = new MagickGeometry(margin, margin, 0, 0)
+                });
+
+                montage.Resize(size);
+                montage.Format = MagickFormat.Png;
+
+                var byteArray = montage.ToByteArray();
+                return byteArray;
+            });
+        }
+
+
+        private static MagickGeometry CalcTileGeometry(int count, double ratio)
+        {
+            var x = Math.Sqrt(count * ratio);
+
+            var xFloor = (int)Math.Floor(x);
+            var y1 = (int)Math.Ceiling((double)count / xFloor);
+
+            var xCeil = (int)Math.Ceiling(x);
+            var y2 = (int)Math.Ceiling((double)count / xCeil);
+
+            var compare = (xFloor * y1).CompareTo(xCeil * y2);
+
+
+            if (compare < 0) return new(xFloor, y1);
+            if (compare > 0) return new(xCeil, y2);
+
+            if (Math.Abs((double)xFloor / y1 - ratio) < Math.Abs((double)xCeil / y2 - ratio)) {
+                return new(xFloor, y1);
+            }
+            else
+            {
+                return new(xCeil, y2);
+            }
+        }
+
+        private static string TrickUrl(string url)
         {
             if (url.StartsWith(EnvVar.MisskeyServer))
             {

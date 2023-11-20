@@ -1,4 +1,5 @@
 ﻿using MisskeySharp;
+using MisskeySharp.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,7 +10,7 @@ namespace MisskeyEmojiNotify.Misskey
 {
     internal class ApiWrapper
     {
-        private static readonly MisskeyApiEntitiesBase emptyEntity = new();
+        private static readonly VoidParameter voidParameter = new();
 
         private readonly MisskeyService misskey;
         private bool isOldVersion;
@@ -70,7 +71,7 @@ namespace MisskeyEmojiNotify.Misskey
             {
                 try
                 {
-                    var emojis = await misskey.PostAsync<MisskeyApiEntitiesBase, EmojisEntity>("emojis", emptyEntity);
+                    var emojis = await misskey.PostAsync<MisskeyApiEntitiesBase, EmojisEntity>("emojis", voidParameter);
 
                     Console.Error.WriteLine($"{nameof(GetEmojis)}: Found {emojis.Emojis.Count}");
 
@@ -102,6 +103,35 @@ namespace MisskeyEmojiNotify.Misskey
             catch (Exception ex)
             {
                 Console.Error.WriteLine($"{nameof(Post)}: {ex}");
+            }
+
+            return false;
+        }
+
+        public async Task<bool> SetBanner(Stream image, string type)
+        {
+            try
+            {
+                var name = $"banner_{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
+
+                var file = await misskey.Drive.Files.Create(new()
+                {
+                    ContentStream = image,
+                    FileName = name,
+                    ContentType = type
+                });
+
+                await misskey.PostAsync<ProfileUpdateParams, User>("i/update", new()
+                {
+                    BannerId = file.Id
+                });
+
+                Console.Error.WriteLine($"{nameof(SetBanner)}: {name}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"{nameof(SetBanner)}: {ex}");
             }
 
             return false;

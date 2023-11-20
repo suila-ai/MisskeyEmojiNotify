@@ -15,6 +15,7 @@ namespace MisskeyEmojiNotify
         public static string Visibility { get; } = GetEnvVar("MISSKEY_VISIBILITY", "specified");
 
         public static string ArchiveFile { get; } = GetEnvVar("MISSKEY_ARCHIVE_FILE", "./archive.json");
+        public static string ImageDir { get; } = GetEnvVar("MISSKEY_IMAGE_DIR", "./images");
 
         private static string GetEnvVar(string name, string? defaultValue = null)
         {

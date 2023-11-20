@@ -8,6 +8,8 @@ RUN dotnet publish -c Release -o out
 
 FROM mcr.microsoft.com/dotnet/runtime:6.0
 
+RUN apt-get update && apt-get install -y --no-install-recommends fonts-noto-cjk
+
 WORKDIR /app
 COPY --from=build /workspace/out .
 
