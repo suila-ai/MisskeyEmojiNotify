@@ -1,6 +1,6 @@
 services:
   emoji-notify:
-    image: ghcr.io/suila-ai/misskey-emoji-notify:1.0
+    image: ghcr.io/suila-ai/misskey-emoji-notify:1.1
     # ローカルビルド用
     # build: .
 
@@ -9,7 +9,7 @@ services:
     environment:
       # MisskeyサーバのURL
       MISSKEY_SERVER: https://misskey.example.com/
-      # APIトークン (必須権限: write:notes)
+      # APIトークン (必須権限: write:account, write:drive, write:notes )
       MISSKEY_TOKEN: ExampleToken
 
       # 絵文字一覧確認間隔(秒)
@@ -18,6 +18,8 @@ services:
       MISSKEY_VISIBILITY: home
       # 永続化データ保存先(コンテナ内)
       MISSKEY_ARCHIVE_FILE: /app/data/archive.json
+      # 絵文字画像保存先(コンテナ内)
+      MISSKEY_IMAGE_DIR: /app/data/images
 
     volumes:
       - "./data:/app/data"
