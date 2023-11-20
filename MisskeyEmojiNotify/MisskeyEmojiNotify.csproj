@@ -8,7 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="MisskeySharp" Version="0.23.7.102" />
+    <PackageReference Include="Magick.NET-Q8-AnyCPU" Version="13.4.0" />
+    <PackageReference Include="MisskeySharp" Version="0.23.9.309" />
   </ItemGroup>
 
   <ItemGroup>

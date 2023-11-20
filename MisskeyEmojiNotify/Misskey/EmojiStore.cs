@@ -72,7 +72,7 @@ namespace MisskeyEmojiNotify.Misskey
             return false;
         }
 
-        public async Task<bool> SaveImages(bool force = false)
+        public async Task<int> SaveImages(bool force = false)
         {
             DirectoryInfo dir;
             try
@@ -82,7 +82,7 @@ namespace MisskeyEmojiNotify.Misskey
             catch (Exception ex)
             {
                 Console.Error.WriteLine($"{nameof(SaveImages)}: {ex}");
-                return false;
+                return 0;
             }
 
             List<string> urls;
@@ -95,7 +95,7 @@ namespace MisskeyEmojiNotify.Misskey
                 urls = emojisByImage.Keys.Except(dir.EnumerateFiles().Select(e => HttpUtility.UrlDecode(e.Name))).ToList();
             }
 
-            var succeeded = true;
+            var count = 0;
 
             foreach (var url in urls)
             {
@@ -105,6 +105,8 @@ namespace MisskeyEmojiNotify.Misskey
                     var res = await httpClient.GetStreamAsync(url);
                     using var file = File.Open(path, FileMode.Create);
                     await res.CopyToAsync(file);
+
+                    count++;
                 }
                 catch (Exception ex)
                 {
@@ -115,12 +117,16 @@ namespace MisskeyEmojiNotify.Misskey
                         File.Delete(path);
                     }
                     catch { }
-
-                    succeeded = false;
                 }
             }
 
-            return succeeded;
+            return count;
+        }
+
+        public static string GetImagePath(Emoji emoji)
+        {
+            var path = Path.Combine(EnvVar.ImageDir, HttpUtility.UrlEncode(emoji.Url));
+            return path;
         }
 
         public IEnumerator<Emoji> GetEnumerator() => emojisByName.Values.GetEnumerator();
