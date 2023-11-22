@@ -1,8 +1,12 @@
-﻿using MisskeySharp;
+﻿using MisskeyEmojiNotify.Misskey.ObservableStream;
+using MisskeySharp;
 using MisskeySharp.Entities;
+using MisskeySharp.Streaming;
+using MisskeySharp.Streaming.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reactive.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -135,6 +139,12 @@ namespace MisskeyEmojiNotify.Misskey
             }
 
             return false;
+        }
+
+        public ObservableNoteStream GetMentions()
+        {
+            var observable = new ObservableNoteStream(misskey, MisskeyStreamingChannels.Main, "mention");
+            return observable;
         }
     }
 }
