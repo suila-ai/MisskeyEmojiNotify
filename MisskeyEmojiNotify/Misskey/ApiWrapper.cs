@@ -1,4 +1,6 @@
-﻿using MisskeyEmojiNotify.Misskey.ObservableStream;
+﻿using MisskeyEmojiNotify.Misskey.Entities;
+using MisskeyEmojiNotify.Misskey.ObservableStream;
+using MisskeyEmojiNotify.Misskey.ObservableStream.Entities;
 using MisskeySharp;
 using MisskeySharp.Entities;
 using MisskeySharp.Streaming;
@@ -10,6 +12,8 @@ using System.Reactive.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using Note = MisskeyEmojiNotify.Misskey.Entities.Note;
+
 namespace MisskeyEmojiNotify.Misskey
 {
     internal class ApiWrapper
@@ -17,13 +21,15 @@ namespace MisskeyEmojiNotify.Misskey
         private static readonly VoidParameter voidParameter = new();
 
         private readonly MisskeyService misskey;
+        private readonly StreamConnection streamConnection;
         private bool isOldVersion;
 
         public static async Task<ApiWrapper?> Create()
         {
-            var instance = new ApiWrapper(new(EnvVar.MisskeyServer));
+            var misskey = new MisskeyService(EnvVar.MisskeyServer);
 
-            await instance.misskey.AuthorizeWithAccessTokenAsync(EnvVar.MisskeyToken);
+            await misskey.AuthorizeWithAccessTokenAsync(EnvVar.MisskeyToken);
+            var instance = new ApiWrapper(misskey);
             await instance.CheckVersion();
 
             return instance;
@@ -32,6 +38,7 @@ namespace MisskeyEmojiNotify.Misskey
         private ApiWrapper(MisskeyService misskey)
         {
             this.misskey = misskey;
+            streamConnection = new(misskey);
         }
 
         private async Task CheckVersion()
@@ -75,7 +82,7 @@ namespace MisskeyEmojiNotify.Misskey
             {
                 try
                 {
-                    var emojis = await misskey.PostAsync<MisskeyApiEntitiesBase, EmojisEntity>("emojis", voidParameter);
+                    var emojis = await misskey.PostAsync<VoidParameter, EmojisEntity>("emojis", voidParameter);
 
                     Console.Error.WriteLine($"{nameof(GetEmojis)}: Found {emojis.Emojis.Count}");
 
@@ -112,6 +119,29 @@ namespace MisskeyEmojiNotify.Misskey
             return false;
         }
 
+        public async Task<bool> Reply(Note note, string text)
+        {
+            try
+            {
+                await misskey.Notes.Create(new()
+                {
+                    Text = text,
+                    Visibility = EnvVar.Visibility,
+                    ReplyId = note.Id,
+                });
+
+                Console.Error.WriteLine($"{nameof(Reply)}: {note.Id} <- {text}");
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"{nameof(Reply)}: {ex}");
+            }
+
+            return false;
+        }
+
         public async Task<bool> SetBanner(Stream image, string type)
         {
             try
@@ -125,7 +155,7 @@ namespace MisskeyEmojiNotify.Misskey
                     ContentType = type
                 });
 
-                await misskey.PostAsync<ProfileUpdateParams, User>("i/update", new()
+                await misskey.PostAsync<ProfileUpdateParams, VoidResponse>("i/update", new()
                 {
                     BannerId = file.Id
                 });
@@ -141,10 +171,9 @@ namespace MisskeyEmojiNotify.Misskey
             return false;
         }
 
-        public ObservableNoteStream GetMentions()
+        public Task<StreamChannel<Note>> GetMentions()
         {
-            var observable = new ObservableNoteStream(misskey, MisskeyStreamingChannels.Main, "mention");
-            return observable;
+            return streamConnection.Connect<Note>(MisskeyStreamingChannels.Main, "mention");
         }
     }
 }
