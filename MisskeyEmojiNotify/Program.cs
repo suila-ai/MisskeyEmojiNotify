@@ -7,7 +7,10 @@
             var jobRunner = await JobRunner.Create();
             if (jobRunner == null) return;
 
-            await jobRunner.Run();
+            await Task.WhenAll(
+                jobRunner.Run(),
+                jobRunner.MentionHandler()
+            );
         }
     }
 }

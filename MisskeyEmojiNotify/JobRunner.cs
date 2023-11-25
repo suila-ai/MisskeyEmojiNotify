@@ -1,18 +1,34 @@
-﻿using ImageMagick;
+﻿using Csv;
+using ImageMagick;
 using MisskeyEmojiNotify.Misskey;
+using MisskeyEmojiNotify.Misskey.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reactive;
+using System.Reactive.Disposables;
+using System.Reactive.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace MisskeyEmojiNotify
 {
-    internal class JobRunner
+    internal partial class JobRunner
     {
         private readonly ApiWrapper apiWrapper;
         private EmojiStore emojiStore;
+        private readonly CsvOptions csvOptions = new()
+        {
+            Separator = ' ',
+            HeaderMode = HeaderMode.HeaderAbsent,
+            AllowNewLineInEnclosedFieldValues = true,
+            NewLine = "\n"
+        };
+        private readonly Random random = new();
+
+        [GeneratedRegex("^(https?://)")]
+        private static partial Regex HttpProtoRegex();
 
         public static async Task<JobRunner?> Create()
         {
@@ -105,6 +121,16 @@ namespace MisskeyEmojiNotify
 
                 await timer;
             }
+        }
+
+        public async Task MentionHandler()
+        {
+            var mentions = await apiWrapper.GetMentions();
+
+            mentions.Where(e => !e.User.IsBot).Synchronize().Subscribe(note =>
+            {
+                GachaHander(note).Wait();
+            });
         }
 
         private async Task PostAddEmojis(List<Emoji> emojis)
@@ -246,11 +272,44 @@ namespace MisskeyEmojiNotify
         {
             if (url.StartsWith(EnvVar.MisskeyServer))
             {
-                var replaced = Regex.Replace(url, "^(https?://)", "$1/");
+                var replaced = HttpProtoRegex().Replace(url, "$1/");
                 return replaced;
             }
 
             return url;
+        }
+
+        public async Task GachaHander(Note note)
+        {
+            var tokens = CsvReader.ReadFromText(note.Text, csvOptions)
+                .SelectMany(e => e.Values)
+                .Where(e => e != string.Empty)
+                .SkipWhile(e => e is not ("ガチャ" or "gacha"))
+                .ToArray();
+
+            if (tokens.Length == 0) return;
+
+            int count = 1;
+            var emojis = new List<Emoji>();
+
+            if (tokens is [_, var countStr, .. var categories])
+            {
+                if (!int.TryParse(countStr, out count)) return;
+                count = Math.Min(count, 50);
+
+                if (categories.Length > 0)
+                {
+                    var categorySet = new HashSet<string>(categories);
+                    emojis.AddRange(emojiStore.Where(e => e.Category != null && categorySet.Contains(e.Category)));
+                }
+            }
+
+            if (emojis.Count == 0) emojis.AddRange(emojiStore);
+
+            var result = string.Join("", Enumerable.Range(0, count).Select(_ => emojis[random.Next(emojis.Count)]).Select(e => $":{e.Name}:"));
+            await apiWrapper.Reply(note, result);
+
+            return;
         }
 
         private record Change(Emoji Old, Emoji New);
