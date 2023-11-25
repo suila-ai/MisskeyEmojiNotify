@@ -104,7 +104,7 @@ namespace MisskeyEmojiNotify.Misskey
                 await misskey.Notes.Create(new()
                 {
                     Text = text,
-                    Visibility = EnvVar.Visibility
+                    Visibility = EnvVar.Visibility.ToApiString()
                 });
 
                 Console.Error.WriteLine($"{nameof(Post)}: {text}");
@@ -121,12 +121,15 @@ namespace MisskeyEmojiNotify.Misskey
 
         public async Task<bool> Reply(Note note, string text)
         {
+            var visibility = EnvVar.Visibility;
+            if (note.Visibility == NoteVisibility.Specified) visibility = NoteVisibility.Specified;
+
             try
             {
                 await misskey.Notes.Create(new()
                 {
                     Text = text,
-                    Visibility = EnvVar.Visibility,
+                    Visibility = visibility.ToApiString(),
                     ReplyId = note.Id,
                 });
 

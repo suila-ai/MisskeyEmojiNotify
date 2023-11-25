@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reactive.Linq;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using MisskeyEmojiNotify.Misskey.ObservableStream.Entities;
 using Websocket.Client;
@@ -20,6 +21,7 @@ namespace MisskeyEmojiNotify.Misskey.ObservableStream
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             PropertyNameCaseInsensitive = true,
+            Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
         };
 
         private StreamChannel(WebsocketClient client, string id, IObservable<T> observable)
@@ -41,7 +43,7 @@ namespace MisskeyEmojiNotify.Misskey.ObservableStream
                     var data = JsonSerializer.Deserialize<ReceiveMessage<T>>(e.Text, jsonSerializerOptions);
                     return data?.Body;
                 }
-                catch(Exception ex) { return null; }
+                catch { return null; }
             }).Where(e => e != null && e.Id == id && e.Type == type).Select(e => e!.Body);
 
             client.DisconnectionHappened.Subscribe(_ => { client.Send(connectMessage); });
