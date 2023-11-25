@@ -16,7 +16,6 @@ namespace MisskeyEmojiNotify.Misskey.ObservableStream
     {
         private readonly WebsocketClient client;
 
-
         public StreamConnection(MisskeyService misskey)
         {
             var uri = new UriBuilder(misskey.Host)
@@ -31,6 +30,11 @@ namespace MisskeyEmojiNotify.Misskey.ObservableStream
                 ReconnectTimeout = null,
                 ErrorReconnectTimeout = TimeSpan.FromSeconds(5),
             };
+
+            client.DisconnectionHappened.Subscribe(e =>
+            {
+                Console.Error.WriteLine($"{nameof(StreamConnection)}: Disconnected due to {e.Type}");
+            });
         }
 
         public Task<StreamChannel<T>> Connect<T>(MisskeyStreamingChannels channel, string? type = null)

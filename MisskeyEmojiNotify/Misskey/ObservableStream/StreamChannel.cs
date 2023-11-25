@@ -46,12 +46,14 @@ namespace MisskeyEmojiNotify.Misskey.ObservableStream
                 catch { return null; }
             }).Where(e => e != null && e.Id == id && e.Type == type).Select(e => e!.Body);
 
-            client.DisconnectionHappened.Subscribe(_ => { client.Send(connectMessage); });
+            client.ReconnectionHappened.Subscribe(_ => {
+                Console.Error.WriteLine($"{nameof(StreamChannel<T>)}: Connected {channel} {type ?? ""}");
+
+                client.Send(connectMessage); 
+            });
 
             if (!client.IsStarted) await client.Start();
             if (!client.IsRunning) await client.Reconnect();
-
-            client.Send(connectMessage);
 
             var instance = new StreamChannel<T>(client, id, observable);
 
