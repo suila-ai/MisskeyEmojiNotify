@@ -1,10 +1,18 @@
-﻿using MisskeySharp;
+﻿using MisskeyEmojiNotify.Misskey.Entities;
+using MisskeyEmojiNotify.Misskey.ObservableStream;
+using MisskeyEmojiNotify.Misskey.ObservableStream.Entities;
+using MisskeySharp;
 using MisskeySharp.Entities;
+using MisskeySharp.Streaming;
+using MisskeySharp.Streaming.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reactive.Linq;
 using System.Text;
 using System.Threading.Tasks;
+
+using Note = MisskeyEmojiNotify.Misskey.Entities.Note;
 
 namespace MisskeyEmojiNotify.Misskey
 {
@@ -13,13 +21,15 @@ namespace MisskeyEmojiNotify.Misskey
         private static readonly VoidParameter voidParameter = new();
 
         private readonly MisskeyService misskey;
+        private readonly StreamConnection streamConnection;
         private bool isOldVersion;
 
         public static async Task<ApiWrapper?> Create()
         {
-            var instance = new ApiWrapper(new(EnvVar.MisskeyServer));
+            var misskey = new MisskeyService(EnvVar.MisskeyServer);
 
-            await instance.misskey.AuthorizeWithAccessTokenAsync(EnvVar.MisskeyToken);
+            await misskey.AuthorizeWithAccessTokenAsync(EnvVar.MisskeyToken);
+            var instance = new ApiWrapper(misskey);
             await instance.CheckVersion();
 
             return instance;
@@ -28,6 +38,7 @@ namespace MisskeyEmojiNotify.Misskey
         private ApiWrapper(MisskeyService misskey)
         {
             this.misskey = misskey;
+            streamConnection = new(misskey);
         }
 
         private async Task CheckVersion()
@@ -71,7 +82,7 @@ namespace MisskeyEmojiNotify.Misskey
             {
                 try
                 {
-                    var emojis = await misskey.PostAsync<MisskeyApiEntitiesBase, EmojisEntity>("emojis", voidParameter);
+                    var emojis = await misskey.PostAsync<VoidParameter, EmojisEntity>("emojis", voidParameter);
 
                     Console.Error.WriteLine($"{nameof(GetEmojis)}: Found {emojis.Emojis.Count}");
 
@@ -93,7 +104,7 @@ namespace MisskeyEmojiNotify.Misskey
                 await misskey.Notes.Create(new()
                 {
                     Text = text,
-                    Visibility = EnvVar.Visibility
+                    Visibility = EnvVar.Visibility.ToApiString()
                 });
 
                 Console.Error.WriteLine($"{nameof(Post)}: {text}");
@@ -103,6 +114,32 @@ namespace MisskeyEmojiNotify.Misskey
             catch (Exception ex)
             {
                 Console.Error.WriteLine($"{nameof(Post)}: {ex}");
+            }
+
+            return false;
+        }
+
+        public async Task<bool> Reply(Note note, string text)
+        {
+            var visibility = EnvVar.Visibility;
+            if (note.Visibility == NoteVisibility.Specified) visibility = NoteVisibility.Specified;
+
+            try
+            {
+                await misskey.Notes.Create(new()
+                {
+                    Text = text,
+                    Visibility = visibility.ToApiString(),
+                    ReplyId = note.Id,
+                });
+
+                Console.Error.WriteLine($"{nameof(Reply)}: {note.Id} <- {text}");
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"{nameof(Reply)}: {ex}");
             }
 
             return false;
@@ -121,7 +158,7 @@ namespace MisskeyEmojiNotify.Misskey
                     ContentType = type
                 });
 
-                await misskey.PostAsync<ProfileUpdateParams, User>("i/update", new()
+                await misskey.PostAsync<ProfileUpdateParams, VoidResponse>("i/update", new()
                 {
                     BannerId = file.Id
                 });
@@ -135,6 +172,11 @@ namespace MisskeyEmojiNotify.Misskey
             }
 
             return false;
+        }
+
+        public Task<StreamChannel<Note>> GetMentions()
+        {
+            return streamConnection.Connect<Note>(MisskeyStreamingChannels.Main, "mention");
         }
     }
 }
