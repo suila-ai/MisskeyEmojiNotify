@@ -127,10 +127,15 @@ namespace MisskeyEmojiNotify
         {
             var mentions = await apiWrapper.GetMentions();
 
-            mentions.Where(e => !e.User.IsBot).Synchronize().Subscribe(note =>
+            await mentions.Where(e => !e.User.IsBot).Select(note => Observable.FromAsync(async () =>
             {
-                GachaHander(note).Wait();
-            });
+                var results = await Task.WhenAll(
+                    GachaHander(note)
+                );
+
+                if (!results.Any(e => e)) await apiWrapper.Reaction(note, "❓");
+
+            })).Concat();
         }
 
         private async Task PostAddEmojis(List<Emoji> emojis)
@@ -279,7 +284,7 @@ namespace MisskeyEmojiNotify
             return url;
         }
 
-        public async Task GachaHander(Note note)
+        public async Task<bool> GachaHander(Note note)
         {
             var tokens = CsvReader.ReadFromText(note.Text, csvOptions)
                 .SelectMany(e => e.Values)
@@ -287,14 +292,14 @@ namespace MisskeyEmojiNotify
                 .SkipWhile(e => e is not ("ガチャ" or "gacha"))
                 .ToArray();
 
-            if (tokens.Length == 0) return;
+            if (tokens.Length == 0) return false;
 
             int count = 1;
             var emojis = new List<Emoji>();
 
             if (tokens is [_, var countStr, .. var categories])
             {
-                if (!int.TryParse(countStr, out count)) return;
+                if (!int.TryParse(countStr, out count)) return false;
                 count = Math.Min(count, 50);
 
                 if (categories.Length > 0)
@@ -309,7 +314,7 @@ namespace MisskeyEmojiNotify
             var result = string.Join("", Enumerable.Range(0, count).Select(_ => emojis[random.Next(emojis.Count)]).Select(e => $":{e.Name}:"));
             await apiWrapper.Reply(note, result);
 
-            return;
+            return true;
         }
 
         private record Change(Emoji Old, Emoji New);
