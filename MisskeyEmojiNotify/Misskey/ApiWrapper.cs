@@ -145,6 +145,28 @@ namespace MisskeyEmojiNotify.Misskey
             return false;
         }
 
+        public async Task<bool> Reaction(Note note, string emoji)
+        {
+            try
+            {
+                await misskey.PostAsync<ReactionParams, VoidResponse>("notes/reactions/create", new()
+                {
+                    NoteId = note.Id,
+                    Reaction = emoji
+                });
+
+                Console.Error.WriteLine($"{nameof(Reaction)}: {note.Id} {emoji}");
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"{nameof(Reaction)}: {ex}");
+            }
+
+            return false;
+        }
+
         public async Task<bool> SetBanner(Stream image, string type)
         {
             try
