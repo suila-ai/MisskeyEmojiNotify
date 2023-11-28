@@ -9,7 +9,7 @@ services:
     environment:
       # MisskeyサーバのURL
       MISSKEY_SERVER: https://misskey.example.com/
-      # APIトークン (必須権限: write:account, write:drive, write:notes )
+      # APIトークン (必須権限: write:account, write:drive, write:notes, write:reactions)
       MISSKEY_TOKEN: ExampleToken
 
       # 絵文字一覧確認間隔(秒)
