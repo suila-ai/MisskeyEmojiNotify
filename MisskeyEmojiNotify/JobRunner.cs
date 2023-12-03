@@ -286,6 +286,8 @@ namespace MisskeyEmojiNotify
 
         public async Task<bool> GachaHander(Note note)
         {
+            if (note.Text == null) return false;
+
             var tokens = CsvReader.ReadFromText(note.Text, csvOptions)
                 .SelectMany(e => e.Values)
                 .Where(e => e != string.Empty)
