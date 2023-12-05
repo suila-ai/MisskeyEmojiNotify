@@ -5,8 +5,6 @@ using MisskeyEmojiNotify.Misskey.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reactive;
-using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -16,16 +14,8 @@ namespace MisskeyEmojiNotify
 {
     internal partial class JobRunner
     {
-        private readonly ApiWrapper apiWrapper;
-        private EmojiStore emojiStore;
-        private readonly CsvOptions csvOptions = new()
-        {
-            Separator = ' ',
-            HeaderMode = HeaderMode.HeaderAbsent,
-            AllowNewLineInEnclosedFieldValues = true,
-            NewLine = "\n"
-        };
-        private readonly Random random = new();
+        public ApiWrapper ApiWrapper { get; }
+        public EmojiStore EmojiStore { get; private set; }
 
         [GeneratedRegex("^(https?://)")]
         private static partial Regex HttpProtoRegex();
@@ -52,8 +42,8 @@ namespace MisskeyEmojiNotify
 
         private JobRunner(ApiWrapper apiWrapper, EmojiStore emojiStore)
         {
-            this.apiWrapper = apiWrapper;
-            this.emojiStore = emojiStore;
+            this.ApiWrapper = apiWrapper;
+            this.EmojiStore = emojiStore;
         }
 
         public async Task Run()
@@ -62,7 +52,7 @@ namespace MisskeyEmojiNotify
             {
                 var timer = Task.Delay(EnvVar.CheckInterval);
 
-                var newEmojis = await apiWrapper.GetEmojis();
+                var newEmojis = await ApiWrapper.GetEmojis();
                 if (newEmojis == null)
                 {
                     await timer;
@@ -79,7 +69,7 @@ namespace MisskeyEmojiNotify
 
                 foreach (var emoji in newEmojis)
                 {
-                    var old = emojiStore.GetByName(emoji.Name);
+                    var old = EmojiStore.GetByName(emoji.Name);
                     if (old != null)
                     {
                         var change = new Change(old, emoji);
@@ -90,7 +80,7 @@ namespace MisskeyEmojiNotify
                     }
                     else
                     {
-                        old = emojiStore.GetByImage(emoji.Url);
+                        old = EmojiStore.GetByImage(emoji.Url);
                         if (old != null)
                         {
                             nameChanges.Add(new(old, emoji));
@@ -104,7 +94,7 @@ namespace MisskeyEmojiNotify
                     if (old != null) undeleted.Add(old);
                 }
 
-                var deleteList = emojiStore.Except(undeleted).ToList();
+                var deleteList = EmojiStore.Except(undeleted).ToList();
 
                 await PostAddEmojis(addList);
                 await PostDeleteEmojis(deleteList);
@@ -113,29 +103,14 @@ namespace MisskeyEmojiNotify
                 await PostAliasChangeEmojis(aliasChanges);
                 await PostImageChangeEmojis(imageChanges);
 
-                emojiStore = new(newEmojis);
-                await emojiStore.SaveArchive();
+                EmojiStore = new(newEmojis);
+                await EmojiStore.SaveArchive();
 
-                var count = await emojiStore.SaveImages();
-                if (count > 0) await UpdateBanner();
+                await EmojiStore.SaveImages();
+                if (addList.Count + imageChanges.Count + deleteList.Count > 0) await UpdateBanner();
 
                 await timer;
             }
-        }
-
-        public async Task MentionHandler()
-        {
-            var mentions = await apiWrapper.GetMentions();
-
-            await mentions.Where(e => !e.User.IsBot).Select(note => Observable.FromAsync(async () =>
-            {
-                var results = await Task.WhenAll(
-                    GachaHander(note)
-                );
-
-                if (!results.Any(e => e)) await apiWrapper.Reaction(note, "❓");
-
-            })).Concat();
         }
 
         private async Task PostAddEmojis(List<Emoji> emojis)
@@ -147,7 +122,7 @@ namespace MisskeyEmojiNotify
                 $"タグ: {(e.Aliases.Count > 0 ? string.Join(' ', e.Aliases) : "(なし)")}\n" +
                 $"?[画像]({TrickUrl(e.Url)})"));
 
-            await apiWrapper.Post(text);
+            await ApiWrapper.Post(text);
         }
 
         private async Task PostDeleteEmojis(List<Emoji> emojis)
@@ -155,7 +130,7 @@ namespace MisskeyEmojiNotify
             if (emojis.Count == 0) return;
             var text = "【絵文字削除】\n" + string.Join("\n\n", emojis.Select(e => $"{e.Name}\n?[旧画像]({TrickUrl(e.Url)})"));
 
-            await apiWrapper.Post(text);
+            await ApiWrapper.Post(text);
         }
 
         private async Task PostNameChangeEmojis(List<Change> changes)
@@ -163,7 +138,7 @@ namespace MisskeyEmojiNotify
             if (changes.Count == 0) return;
 
             var text = "【名前変更】\n" + string.Join("\n\n", changes.Select(e => $"$[x2 :{e.New.Name}:]\n({e.Old.Name} → {e.New.Name})"));
-            await apiWrapper.Post(text);
+            await ApiWrapper.Post(text);
         }
 
         private async Task PostCategoryChangeEmojis(List<Change> changes)
@@ -173,7 +148,7 @@ namespace MisskeyEmojiNotify
                 var text = "【カテゴリ変更】\n" +
                     $"{group.Key.oldCategory ?? "(なし)"} → {group.Key.newCategory ?? "(なし)"}\n" +
                     string.Join(' ', group.Select(e => $":{e.New.Name}:"));
-                await apiWrapper.Post(text);
+                await ApiWrapper.Post(text);
             }
         }
 
@@ -196,7 +171,7 @@ namespace MisskeyEmojiNotify
                 return text;
             }));
 
-            await apiWrapper.Post(text);
+            await ApiWrapper.Post(text);
         }
 
         private async Task PostImageChangeEmojis(List<Change> changes)
@@ -205,14 +180,14 @@ namespace MisskeyEmojiNotify
 
             var text = "【画像変更】\n" + string.Join("\n\n", changes.Select(e => $"$[x2 :{e.New.Name}:] ({e.New.Name})\n?[旧画像]({TrickUrl(e.Old.Url)}) ?[新画像]({TrickUrl(e.New.Url)})"));
 
-            await apiWrapper.Post(text);
+            await ApiWrapper.Post(text);
         }
 
         private async Task UpdateBanner()
         {
             var montage = await CreateMontage();
             using var stream = new MemoryStream(montage);
-            await apiWrapper.SetBanner(stream, "image/png");
+            await ApiWrapper.SetBanner(stream, "image/png");
         }
 
         private Task<byte[]> CreateMontage()
@@ -221,11 +196,11 @@ namespace MisskeyEmojiNotify
             {
                 using var images = new MagickImageCollection();
 
-                var tile = CalcTileGeometry(emojiStore.Count, 2.0);
+                var tile = CalcTileGeometry(EmojiStore.Count, 2.0);
                 var size = new MagickGeometry(1100, 0);
                 var tileSize = new MagickGeometry(size.Width / tile.Width);
 
-                foreach (var emoji in emojiStore)
+                foreach (var emoji in EmojiStore)
                 {
                     var image = new MagickImage(EmojiStore.GetImagePath(emoji));
                     image.Resize(tileSize);
@@ -282,41 +257,6 @@ namespace MisskeyEmojiNotify
             }
 
             return url;
-        }
-
-        public async Task<bool> GachaHander(Note note)
-        {
-            if (note.Text == null) return false;
-
-            var tokens = CsvReader.ReadFromText(note.Text, csvOptions)
-                .SelectMany(e => e.Values)
-                .Where(e => e != string.Empty)
-                .SkipWhile(e => e is not ("ガチャ" or "gacha"))
-                .ToArray();
-
-            if (tokens.Length == 0) return false;
-
-            int count = 1;
-            var emojis = new List<Emoji>();
-
-            if (tokens is [_, var countStr, .. var categories])
-            {
-                if (!int.TryParse(countStr, out count)) return false;
-                count = Math.Min(count, 50);
-
-                if (categories.Length > 0)
-                {
-                    var categorySet = new HashSet<string>(categories);
-                    emojis.AddRange(emojiStore.Where(e => e.Category != null && categorySet.Contains(e.Category)));
-                }
-            }
-
-            if (emojis.Count == 0) emojis.AddRange(emojiStore);
-
-            var result = string.Join("", Enumerable.Range(0, count).Select(_ => emojis[random.Next(emojis.Count)]).Select(e => $":{e.Name}:"));
-            await apiWrapper.Reply(note, result);
-
-            return true;
         }
 
         private record Change(Emoji Old, Emoji New);

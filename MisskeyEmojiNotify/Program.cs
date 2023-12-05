@@ -6,11 +6,19 @@
         {
             var jobRunner = await JobRunner.Create();
             if (jobRunner == null) return;
+            var mentionHandler = new MentionHandler(jobRunner);
 
-            await Task.WhenAll(
-                jobRunner.Run(),
-                jobRunner.MentionHandler()
-            );
+            try
+            {
+                await Task.WhenAll(
+                    jobRunner.Run(),
+                    mentionHandler.Start()
+                );
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"UNHANDLED: {ex}");
+            }
         }
     }
 }

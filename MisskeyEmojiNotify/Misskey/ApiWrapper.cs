@@ -155,7 +155,7 @@ namespace MisskeyEmojiNotify.Misskey
                     Reaction = emoji
                 });
 
-                Console.Error.WriteLine($"{nameof(Reaction)}: {note.Id} {emoji}");
+                Console.Error.WriteLine($"{nameof(Reaction)}: {note.Id} <- {emoji}");
 
                 return true;
             }
