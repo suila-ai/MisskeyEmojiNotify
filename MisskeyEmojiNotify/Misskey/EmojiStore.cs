@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MisskeyEmojiNotify.Misskey.Entities;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;

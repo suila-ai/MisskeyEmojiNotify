@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MisskeyEmojiNotify.Misskey
+namespace MisskeyEmojiNotify.Misskey.Entities
 {
     internal record Emoji(
         string Name,

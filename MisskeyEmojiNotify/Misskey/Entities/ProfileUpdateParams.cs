@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MisskeyEmojiNotify.Misskey
+namespace MisskeyEmojiNotify.Misskey.Entities
 {
     internal class ProfileUpdateParams : MisskeyApiEntitiesBase
     {
