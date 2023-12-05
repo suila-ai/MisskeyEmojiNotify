@@ -41,11 +41,8 @@ namespace MisskeyEmojiNotify
             return defaultValue;
         }
 
-        internal class MissingEnvVarException : Exception
+        internal class MissingEnvVarException(string? message) : Exception(message)
         {
-            public MissingEnvVarException(string? message) : base(message)
-            {
-            }
         }
     }
 }

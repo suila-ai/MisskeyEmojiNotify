@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MisskeyEmojiNotify.Misskey.Entities;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,8 +12,8 @@ namespace MisskeyEmojiNotify.Misskey
 {
     internal class EmojiStore : IReadOnlyCollection<Emoji>
     {
-        private readonly Dictionary<string, Emoji> emojisByName = new();
-        private readonly Dictionary<string, Emoji> emojisByImage = new();
+        private readonly Dictionary<string, Emoji> emojisByName = [];
+        private readonly Dictionary<string, Emoji> emojisByImage = [];
 
         private readonly HttpClient httpClient = new();
 
@@ -88,7 +89,7 @@ namespace MisskeyEmojiNotify.Misskey
             List<string> urls;
             if (force)
             {
-                urls = emojisByImage.Keys.ToList();
+                urls = [.. emojisByImage.Keys];
             }
             else
             {

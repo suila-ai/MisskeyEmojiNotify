@@ -5,7 +5,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace MisskeyEmojiNotify.Misskey.ObservableStream
+namespace MisskeyEmojiNotify.Misskey.ObservableStream.Entities
 {
     internal interface IMessageEntity<T> where T : IMessageEntity<T>.IBody
     {
