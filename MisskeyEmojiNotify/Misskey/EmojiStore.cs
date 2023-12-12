@@ -124,12 +124,6 @@ namespace MisskeyEmojiNotify.Misskey
             return count;
         }
 
-        public static string GetImagePath(Emoji emoji)
-        {
-            var path = Path.Combine(EnvVar.ImageDir, HttpUtility.UrlEncode(emoji.Url));
-            return path;
-        }
-
         public IEnumerator<Emoji> GetEnumerator() => emojisByName.Values.GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
