@@ -76,7 +76,16 @@ namespace MisskeyEmojiNotify
                         if (emoji.Name != old.Name) nameChanges.Add(change);
                         if (emoji.Category != old.Category) categoryChanges.Add(change);
                         if (!emoji.Aliases.SetEquals(old.Aliases)) aliasChanges.Add(change);
-                        if (emoji.Url != old.Url) imageChanges.Add(change);
+
+                        if (emoji.Url != old.Url)
+                        {
+                            imageChanges.Add(change);
+                        }
+                        else
+                        {
+                            var equal = await emoji.EqualsRemote(true);
+                            if (!equal) imageChanges.Add(change);
+                        }
                     }
                     else
                     {
@@ -178,7 +187,10 @@ namespace MisskeyEmojiNotify
         {
             if (changes.Count == 0) return;
 
-            var text = "【画像変更】\n" + string.Join("\n\n", changes.Select(e => $"$[x2 :{e.New.Name}:] ({e.New.Name})\n?[旧画像]({TrickUrl(e.Old.Url)}) ?[新画像]({TrickUrl(e.New.Url)})"));
+            var text = "【画像変更】\n" + string.Join("\n\n", changes.Select(e =>
+                $"$[x2 :{e.New.Name}:] ({e.New.Name})\n" +
+                $"{(e.Old.Url != e.New.Url ? $"?[旧画像]({TrickUrl(e.Old.Url)}) " : "")}?[新画像]({TrickUrl(e.New.Url)})"
+            ));
 
             await ApiWrapper.Post(text);
         }
@@ -202,7 +214,7 @@ namespace MisskeyEmojiNotify
 
                 foreach (var emoji in EmojiStore)
                 {
-                    var image = new MagickImage(EmojiStore.GetImagePath(emoji));
+                    var image = new MagickImage(emoji.GetImagePath());
                     image.Resize(tileSize);
                     images.Add(image);
                 }
