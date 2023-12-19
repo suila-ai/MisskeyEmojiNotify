@@ -4,18 +4,24 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Web;
 
 namespace MisskeyEmojiNotify.Misskey
 {
-    internal class EmojiStore : IReadOnlyCollection<Emoji>
+    internal class EmojiStore : IReadOnlyCollection<ArchiveEmoji>
     {
-        private readonly Dictionary<string, Emoji> emojisByName = [];
-        private readonly Dictionary<string, Emoji> emojisByImage = [];
+        private readonly Dictionary<string, ArchiveEmoji> emojisByName = [];
+        private readonly Dictionary<string, ArchiveEmoji> emojisByImage = [];
 
         private readonly HttpClient httpClient = new();
+
+        private static readonly JsonSerializerOptions jsonSerializerOptions = new()
+        {
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        };
 
         public int Count => emojisByName.Values.Count;
 
@@ -24,7 +30,7 @@ namespace MisskeyEmojiNotify.Misskey
             try
             {
                 using var stream = File.Open(EnvVar.ArchiveFile, FileMode.Open);
-                var archive = await JsonSerializer.DeserializeAsync<IReadOnlyList<Emoji>>(stream);
+                var archive = await JsonSerializer.DeserializeAsync<IReadOnlyList<ArchiveEmoji>>(stream, jsonSerializerOptions);
                 if (archive != null) return new(archive);
             }
             catch (Exception ex)
@@ -35,7 +41,7 @@ namespace MisskeyEmojiNotify.Misskey
             return null;
         }
 
-        public EmojiStore(IEnumerable<Emoji> emojis)
+        public EmojiStore(IEnumerable<ArchiveEmoji> emojis)
         {
             foreach (var emoji in emojis)
             {
@@ -44,15 +50,17 @@ namespace MisskeyEmojiNotify.Misskey
             }
         }
 
-        public Emoji? GetByName(string name)
+        public EmojiStore(IEnumerable<Emoji> emojis) : this(emojis.Select(emoji => new ArchiveEmoji(emoji))) { }
+
+        public ArchiveEmoji? GetByName(string name)
         {
-            emojisByName.TryGetValue(name, out Emoji? result);
+            emojisByName.TryGetValue(name, out ArchiveEmoji? result);
             return result;
         }
 
-        public Emoji? GetByImage(string url)
+        public ArchiveEmoji? GetByImage(string url)
         {
-            emojisByImage.TryGetValue(url, out Emoji? result);
+            emojisByImage.TryGetValue(url, out ArchiveEmoji? result);
             return result;
         }
 
@@ -61,7 +69,7 @@ namespace MisskeyEmojiNotify.Misskey
             try
             {
                 using var stream = File.Open(EnvVar.ArchiveFile, FileMode.Create);
-                await JsonSerializer.SerializeAsync(stream, emojisByName.Values);
+                await JsonSerializer.SerializeAsync(stream, emojisByName.Values, jsonSerializerOptions);
 
                 return true;
             }
@@ -75,56 +83,18 @@ namespace MisskeyEmojiNotify.Misskey
 
         public async Task<int> SaveImages(bool force = false)
         {
-            DirectoryInfo dir;
-            try
-            {
-                dir = Directory.CreateDirectory(EnvVar.ImageDir);
-            }
-            catch (Exception ex)
-            {
-                Console.Error.WriteLine($"{nameof(SaveImages)}: {ex}");
-                return 0;
-            }
-
-            List<string> urls;
-            if (force)
-            {
-                urls = [.. emojisByImage.Keys];
-            }
-            else
-            {
-                urls = emojisByImage.Keys.Except(dir.EnumerateFiles().Select(e => HttpUtility.UrlDecode(e.Name))).ToList();
-            }
-
             var count = 0;
 
-            foreach (var url in urls)
+            foreach (var emoji in emojisByName.Values)
             {
-                var path = Path.Combine(dir.FullName, HttpUtility.UrlEncode(url));
-                try
-                {
-                    var res = await httpClient.GetStreamAsync(url);
-                    using var file = File.Open(path, FileMode.Create);
-                    await res.CopyToAsync(file);
-
-                    count++;
-                }
-                catch (Exception ex)
-                {
-                    Console.Error.WriteLine($"{nameof(SaveImages)}: {ex}");
-
-                    try
-                    {
-                        File.Delete(path);
-                    }
-                    catch { }
-                }
+                var result = await emoji.SyncRemote(force);
+                if (result) count++;
             }
 
             return count;
         }
 
-        public IEnumerator<Emoji> GetEnumerator() => emojisByName.Values.GetEnumerator();
+        public IEnumerator<ArchiveEmoji> GetEnumerator() => emojisByName.Values.GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }

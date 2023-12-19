@@ -32,6 +32,7 @@ namespace MisskeyEmojiNotify
                 if (emojis == null) return null;
 
                 emojiStore = new EmojiStore(emojis);
+                await emojiStore.SaveImages(true);
                 var result = await emojiStore.SaveArchive();
                 if (!result) return null;
             }
@@ -42,8 +43,8 @@ namespace MisskeyEmojiNotify
 
         private JobRunner(ApiWrapper apiWrapper, EmojiStore emojiStore)
         {
-            this.ApiWrapper = apiWrapper;
-            this.EmojiStore = emojiStore;
+            ApiWrapper = apiWrapper;
+            EmojiStore = emojiStore;
         }
 
         public async Task Run()
@@ -59,6 +60,9 @@ namespace MisskeyEmojiNotify
                     continue;
                 }
 
+                var newEmojiStore = new EmojiStore(newEmojis);
+                await newEmojiStore.SaveImages();
+
                 var addList = new List<Emoji>();
                 var nameChanges = new List<Change>();
                 var categoryChanges = new List<Change>();
@@ -67,7 +71,7 @@ namespace MisskeyEmojiNotify
 
                 var undeleted = new HashSet<Emoji>();
 
-                foreach (var emoji in newEmojis)
+                foreach (var emoji in newEmojiStore)
                 {
                     var old = EmojiStore.GetByName(emoji.Name);
                     if (old != null)
@@ -76,16 +80,8 @@ namespace MisskeyEmojiNotify
                         if (emoji.Name != old.Name) nameChanges.Add(change);
                         if (emoji.Category != old.Category) categoryChanges.Add(change);
                         if (!emoji.Aliases.SetEquals(old.Aliases)) aliasChanges.Add(change);
+                        if (emoji.ImageHash != old.ImageHash) imageChanges.Add(change);
 
-                        if (emoji.Url != old.Url)
-                        {
-                            imageChanges.Add(change);
-                        }
-                        else
-                        {
-                            var equal = await emoji.EqualsRemote(true);
-                            if (!equal) imageChanges.Add(change);
-                        }
                     }
                     else
                     {
@@ -112,10 +108,9 @@ namespace MisskeyEmojiNotify
                 await PostAliasChangeEmojis(aliasChanges);
                 await PostImageChangeEmojis(imageChanges);
 
-                EmojiStore = new(newEmojis);
+                EmojiStore = newEmojiStore;
                 await EmojiStore.SaveArchive();
 
-                await EmojiStore.SaveImages();
                 if (addList.Count + imageChanges.Count + deleteList.Count > 0) await UpdateBanner();
 
                 await timer;
@@ -214,7 +209,9 @@ namespace MisskeyEmojiNotify
 
                 foreach (var emoji in EmojiStore)
                 {
-                    var image = new MagickImage(emoji.GetImagePath());
+                    if (emoji.ImagePath == null) continue;
+
+                    var image = new MagickImage(emoji.ImagePath);
                     image.Resize(tileSize);
                     images.Add(image);
                 }
