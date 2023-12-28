@@ -8,13 +8,16 @@ namespace MisskeyEmojiNotify.Misskey
     class ArchiveEmoji : Emoji
     {
         [JsonPropertyOrder(1000)]
+        public string? ActualUrl { get => actualUrl; init => actualUrl = value; }
+        [JsonPropertyOrder(1000)]
         public string? ImageHash { get => imageHash; init => imageHash = value; }
-        [JsonPropertyOrder(1001)]
+        [JsonPropertyOrder(1000)]
         public string? ImageFormat { get => imageFormat; init => imageFormat = value; }
 
         [JsonIgnore]
         public string? ImagePath => ImageHash != null && ImageFormat != null ? Path.Combine(EnvVar.ImageDir, $"{ImageHash}.{ImageFormat}") : null;
 
+        private string? actualUrl = null;
         private string? imageHash = null;
         private string? imageFormat = null;
 
@@ -37,8 +40,11 @@ namespace MisskeyEmojiNotify.Misskey
             {
                 using var sha1 = SHA1.Create();
 
-                var res = await httpClient.GetByteArrayAsync(Url);
-                var remotehash = sha1.ComputeHash(res);
+                var res = await httpClient.GetAsync(Url);
+                res.EnsureSuccessStatusCode();
+                actualUrl = res.RequestMessage?.RequestUri?.ToString();
+                var data = await res.Content.ReadAsByteArrayAsync();
+                var remotehash = sha1.ComputeHash(data);
 
                 sha1.Initialize();
 
@@ -54,12 +60,12 @@ namespace MisskeyEmojiNotify.Misskey
                 {
                     imageHash = Convert.ToHexString(remotehash);
 
-                    using var image = new MagickImage(res);
+                    using var image = new MagickImage(data);
                     imageFormat = image.Format.ToString().ToLowerInvariant();
 
                     if (ImagePath == null) return false;
                     using var file = File.Open(ImagePath, FileMode.Create);
-                    await file.WriteAsync(res);
+                    await file.WriteAsync(data);
                 }
 
                 return update;
