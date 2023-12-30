@@ -1,5 +1,4 @@
-﻿using Csv;
-using ImageMagick;
+﻿using ImageMagick;
 using MisskeyEmojiNotify.Misskey;
 using MisskeyEmojiNotify.Misskey.Entities;
 using System;
@@ -7,18 +6,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace MisskeyEmojiNotify
 {
-    internal partial class JobRunner
+    internal class JobRunner
     {
         public ApiWrapper ApiWrapper { get; }
         public EmojiStore EmojiStore { get; private set; }
-
-        [GeneratedRegex("^(https?://)")]
-        private static partial Regex HttpProtoRegex();
 
         public static async Task<JobRunner?> Create()
         {
@@ -63,13 +58,13 @@ namespace MisskeyEmojiNotify
                 var newEmojiStore = new EmojiStore(newEmojis);
                 await newEmojiStore.SaveImages();
 
-                var addList = new List<Emoji>();
+                var addList = new List<ArchiveEmoji>();
                 var nameChanges = new List<Change>();
                 var categoryChanges = new List<Change>();
                 var aliasChanges = new List<Change>();
                 var imageChanges = new List<Change>();
 
-                var undeleted = new HashSet<Emoji>();
+                var undeleted = new HashSet<ArchiveEmoji>();
 
                 foreach (var emoji in newEmojiStore)
                 {
@@ -117,22 +112,22 @@ namespace MisskeyEmojiNotify
             }
         }
 
-        private async Task PostAddEmojis(List<Emoji> emojis)
+        private async Task PostAddEmojis(List<ArchiveEmoji> emojis)
         {
             if (emojis.Count == 0) return;
             var text = "【絵文字追加】\n" + string.Join("\n\n", emojis.Select(e =>
                 $"$[x2 :{e.Name}:] ({e.Name})\n" +
                 $"カテゴリ: {e.Category ?? "(なし)"}\n" +
                 $"タグ: {(e.Aliases.Count > 0 ? string.Join(' ', e.Aliases) : "(なし)")}\n" +
-                $"?[画像]({TrickUrl(e.Url)})"));
+                $"{ImageLink("画像", e)}"));
 
             await ApiWrapper.Post(text);
         }
 
-        private async Task PostDeleteEmojis(List<Emoji> emojis)
+        private async Task PostDeleteEmojis(List<ArchiveEmoji> emojis)
         {
             if (emojis.Count == 0) return;
-            var text = "【絵文字削除】\n" + string.Join("\n\n", emojis.Select(e => $"{e.Name}\n?[旧画像]({TrickUrl(e.Url)})"));
+            var text = "【絵文字削除】\n" + string.Join("\n\n", emojis.Select(e => $"{e.Name}\n{ImageLink("旧画像", e)}"));
 
             await ApiWrapper.Post(text);
         }
@@ -184,7 +179,7 @@ namespace MisskeyEmojiNotify
 
             var text = "【画像変更】\n" + string.Join("\n\n", changes.Select(e =>
                 $"$[x2 :{e.New.Name}:] ({e.New.Name})\n" +
-                $"{(e.Old.Url != e.New.Url ? $"?[旧画像]({TrickUrl(e.Old.Url)}) " : "")}?[新画像]({TrickUrl(e.New.Url)})"
+                $"{((e.Old.ActualUrl ?? e.Old.Url) != (e.New.ActualUrl ?? e.New.Url) ? $"{ImageLink("旧画像", e.Old)} " : "")}{ImageLink("新画像", e.New)}"
             ));
 
             await ApiWrapper.Post(text);
@@ -257,17 +252,22 @@ namespace MisskeyEmojiNotify
             }
         }
 
+        private static string ImageLink(string text, ArchiveEmoji emoji)
+        {
+            return $"?[{text}]({TrickUrl(emoji.ActualUrl ?? emoji.Url)})";
+        }
+
         private static string TrickUrl(string url)
         {
             if (url.StartsWith(EnvVar.MisskeyServer))
             {
-                var replaced = HttpProtoRegex().Replace(url, "$1/");
+                var replaced = Regexes.HttpProto().Replace(url, "$1/");
                 return replaced;
             }
 
             return url;
         }
 
-        private record Change(Emoji Old, Emoji New);
+        private record Change(ArchiveEmoji Old, ArchiveEmoji New);
     }
 }
