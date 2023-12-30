@@ -64,6 +64,7 @@ namespace MisskeyEmojiNotify.Misskey
                     imageFormat = image.Format.ToString().ToLowerInvariant();
 
                     if (ImagePath == null) return false;
+                    if (!Directory.Exists(EnvVar.ImageDir)) Directory.CreateDirectory(EnvVar.ImageDir);
                     using var file = File.Open(ImagePath, FileMode.Create);
                     await file.WriteAsync(data);
                 }
