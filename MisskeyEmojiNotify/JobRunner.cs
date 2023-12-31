@@ -188,11 +188,10 @@ namespace MisskeyEmojiNotify
         private async Task UpdateBanner()
         {
             var montage = await CreateMontage();
-            using var stream = new MemoryStream(montage);
-            await ApiWrapper.SetBanner(stream, "image/png");
+            await ApiWrapper.SetBanner(montage, "image/png");
         }
 
-        private Task<byte[]> CreateMontage()
+        private Task<ReadOnlyMemory<byte>> CreateMontage()
         {
             return Task.Run(() =>
             {
@@ -221,8 +220,8 @@ namespace MisskeyEmojiNotify
                 montage.Resize(size);
                 montage.Format = MagickFormat.Png;
 
-                var byteArray = montage.ToByteArray();
-                return byteArray;
+                ReadOnlyMemory<byte> memory = montage.ToByteArray();
+                return memory;
             });
         }
 
