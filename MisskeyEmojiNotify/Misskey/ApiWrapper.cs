@@ -167,15 +167,19 @@ namespace MisskeyEmojiNotify.Misskey
             return false;
         }
 
-        public async Task<bool> SetBanner(Stream image, string type)
+        public async Task<bool> SetBanner(ReadOnlyMemory<byte> image, string type)
         {
             try
             {
                 var name = $"banner_{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
 
+                using var stream = new MemoryStream(image.Length);
+                await stream.WriteAsync(image);
+                stream.Seek(0, SeekOrigin.Begin);
+                
                 var file = await misskey.Drive.Files.Create(new()
                 {
-                    ContentStream = image,
+                    ContentStream = stream,
                     FileName = name,
                     ContentType = type
                 });

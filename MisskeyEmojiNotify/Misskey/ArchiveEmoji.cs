@@ -38,30 +38,16 @@ namespace MisskeyEmojiNotify.Misskey
         {
             try
             {
-                using var sha1 = SHA1.Create();
-
-                var res = await httpClient.GetAsync(Url);
+                using var res = await httpClient.GetAsync(Url);
                 res.EnsureSuccessStatusCode();
                 actualUrl = res.RequestMessage?.RequestUri?.ToString();
-                var data = await res.Content.ReadAsByteArrayAsync();
-                var remotehash = sha1.ComputeHash(data);
+                Memory<byte> data = await res.Content.ReadAsByteArrayAsync();
 
-                sha1.Initialize();
-
-                var update = true;
-
-                if (!force && ImageHash != null)
-                {
-                    var localHash = Convert.FromHexString(ImageHash);
-                    update = !remotehash.SequenceEqual(localHash);
-                }
+                var update = UpdateHash(data.Span) || force;
 
                 if (update)
                 {
-                    imageHash = Convert.ToHexString(remotehash);
-
-                    using var image = new MagickImage(data);
-                    imageFormat = image.Format.ToString().ToLowerInvariant();
+                    UpdateImageFormat(data.Span);
 
                     if (ImagePath == null) return false;
                     if (!Directory.Exists(EnvVar.ImageDir)) Directory.CreateDirectory(EnvVar.ImageDir);
@@ -75,6 +61,35 @@ namespace MisskeyEmojiNotify.Misskey
             {
                 return false;
             }
+        }
+
+        private bool UpdateHash(ReadOnlySpan<byte> bytes)
+        {
+            var hash = (stackalloc byte[20]);
+            SHA1.TryHashData(bytes, hash, out var _);
+            var hashStr = Convert.ToHexString(hash);
+
+            if (ImageHash != hashStr)
+            {
+                imageHash = hashStr;
+                return true;
+            }
+
+            return false;
+        }
+
+        private void UpdateImageFormat(ReadOnlySpan<byte> image)
+        {
+            imageFormat = image switch
+            {
+                [0xFF, 0xD8, ..] => "jpg",
+                [0x89, 0x50, 0x4E, 0x47, ..] => "png",
+                [0x47, 0x49, 0x46, ..] => "gif",
+                [0x42, 0x4D, ..] => "bmp",
+                [0x52, 0x49, 0x46, 0x46, _, _, _, _, 0x57, 0x45, 0x42, 0x50, ..] => "webp",
+                [0x3C, 0x3F, 0x78, 0x6D, 0x6C, ..] => "svg",
+                _ => "bin"
+            };
         }
     }
 }
