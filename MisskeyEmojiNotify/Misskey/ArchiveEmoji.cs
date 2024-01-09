@@ -66,7 +66,14 @@ namespace MisskeyEmojiNotify.Misskey
         private bool UpdateHash(ReadOnlySpan<byte> bytes)
         {
             var hash = (stackalloc byte[20]);
-            SHA1.TryHashData(bytes, hash, out var _);
+            var success = SHA1.TryHashData(bytes, hash, out var _);
+
+            if (!success)
+            {
+                imageHash = null;
+                return false;
+            }
+
             var hashStr = Convert.ToHexString(hash);
 
             if (ImageHash != hashStr)

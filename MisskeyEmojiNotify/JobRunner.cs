@@ -75,7 +75,8 @@ namespace MisskeyEmojiNotify
                         if (emoji.Name != old.Name) nameChanges.Add(change);
                         if (emoji.Category != old.Category) categoryChanges.Add(change);
                         if (!emoji.Aliases.SetEquals(old.Aliases)) aliasChanges.Add(change);
-                        if (emoji.ImageHash != old.ImageHash) imageChanges.Add(change);
+                        if (emoji.ImageHash != null && old.ImageHash != null && emoji.ImageHash != old.ImageHash)
+                            imageChanges.Add(change);
 
                     }
                     else
