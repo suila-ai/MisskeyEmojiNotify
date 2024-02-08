@@ -6,9 +6,11 @@ using MisskeySharp.Entities;
 using MisskeySharp.Streaming;
 using MisskeySharp.Streaming.Entities;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -198,6 +200,44 @@ namespace MisskeyEmojiNotify.Misskey
             }
 
             return false;
+        }
+
+        public async Task<IReadOnlyList<Note>> GetLocalNotesForDay(DateOnly date)
+        {
+            var result = new List<Note>();
+
+            var since = new DateTimeOffset(date, TimeOnly.MinValue, TimeZoneInfo.Local.BaseUtcOffset);
+            var until = since.AddDays(1);
+
+            try
+            {
+                var notes = await misskey.PostAsync<TimelineParams, Notes>("notes/local-timeline", new()
+                {
+                    Limit = 100,
+                    UntilDate = until.ToUnixTimeMilliseconds()
+                });
+
+
+                while (notes[^1].CreatedAt >= since)
+                {
+                    result.AddRange(notes);
+
+                    notes = await misskey.PostAsync<TimelineParams, Notes>("notes/local-timeline", new()
+                    {
+                        Limit = 100,
+                        UntilId = notes[^1].Id
+                    });
+                }
+
+                result.AddRange(notes.Where(e => e.CreatedAt >= since));
+
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"{nameof(GetLocalNotesForDay)}: {ex}");
+            }
+
+            return result;
         }
 
         public Task<StreamChannel<Note>> GetMentions()
