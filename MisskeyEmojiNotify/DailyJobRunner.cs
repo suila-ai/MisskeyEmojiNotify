@@ -32,7 +32,7 @@ namespace MisskeyEmojiNotify
                     var reactionsCount = reactions.Sum(e => e.Value);
 
                     var text = $"【昨日({yesterday:MM/dd})のリアクション】\n" +
-                        string.Join("", reactions.Take(10).Select((e, i) => RankingFormat(i, e.Key))) + "\n\n" +
+                        string.Join("", reactions.Take(10).Select((e, i) => RankingFormat(i, e.Key, e.Value))) + "\n\n" +
                         $"ノート数: {notes.Count} リアクション数: {reactionsCount}";
 
                     await jobRunner.ApiWrapper.Post(text);
@@ -44,7 +44,7 @@ namespace MisskeyEmojiNotify
             }
         }
 
-        private static string RankingFormat(int rank, string emoji)
+        private static string RankingFormat(int rank, string emoji, int count)
         {
             if (rank < 0 || rank > 9) return string.Empty;
 
@@ -53,9 +53,9 @@ namespace MisskeyEmojiNotify
 
             var mfmText = rank switch
             {
-                0 => $"$[x2 {text}]\n",
-                2 => $"{text}\n",
-                _ => $"{text}  ",
+                0 => $"$[x2 {text}] x{count}\n",
+                2 => $"{text} x{count}\n",
+                _ => $"{text} x{count}  ",
             };
 
             return mfmText;
