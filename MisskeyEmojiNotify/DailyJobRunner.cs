@@ -37,7 +37,7 @@ namespace MisskeyEmojiNotify
 
                     await jobRunner.ApiWrapper.Post(text);
 
-                    lastRun = yesterday;
+                    lastRun = today;
                 }
 
                 await Task.Delay(TimeSpan.FromSeconds(60));
