@@ -6,5 +6,8 @@ namespace MisskeyEmojiNotify
     {
         [GeneratedRegex("^(https?://)")]
         public static partial Regex HttpProto();
+
+        [GeneratedRegex(@"^(:.+@\.:)|([^:]+)$")]
+        public static partial Regex StandardOrLocalEmoji();
     }
 }
