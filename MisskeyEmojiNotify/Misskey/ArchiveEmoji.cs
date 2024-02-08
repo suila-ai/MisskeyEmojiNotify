@@ -57,8 +57,9 @@ namespace MisskeyEmojiNotify.Misskey
 
                 return update;
             }
-            catch
+            catch (Exception ex)
             {
+                Console.Error.WriteLine($"{nameof(SyncRemote)}: {ex}");
                 return false;
             }
         }
