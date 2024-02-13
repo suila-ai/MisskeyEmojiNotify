@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using MisskeyEmojiNotify.Misskey.ObservableStream.Entities;
 using System.Reactive.Linq;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Threading.Tasks;
-using MisskeyEmojiNotify.Misskey.ObservableStream.Entities;
 using Websocket.Client;
 
 namespace MisskeyEmojiNotify.Misskey.ObservableStream
@@ -46,10 +41,11 @@ namespace MisskeyEmojiNotify.Misskey.ObservableStream
                 catch { return null; }
             }).Where(e => e != null && e.Id == id && e.Type == type).Select(e => e!.Body);
 
-            client.ReconnectionHappened.Subscribe(_ => {
+            client.ReconnectionHappened.Subscribe(_ =>
+            {
                 Console.Error.WriteLine($"{nameof(StreamChannel<T>)}: Connected {channel} {type ?? ""}");
 
-                client.Send(connectMessage); 
+                client.Send(connectMessage);
             });
 
             if (!client.IsStarted) await client.Start();

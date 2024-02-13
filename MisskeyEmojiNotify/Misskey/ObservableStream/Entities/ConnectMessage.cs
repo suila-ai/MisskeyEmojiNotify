@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace MisskeyEmojiNotify.Misskey.ObservableStream.Entities
+﻿namespace MisskeyEmojiNotify.Misskey.ObservableStream.Entities
 {
     internal class ConnectMessage : IMessageEntity<ConnectMessage.BodyEntity>
     {

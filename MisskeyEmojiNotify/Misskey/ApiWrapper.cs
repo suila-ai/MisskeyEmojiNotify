@@ -3,12 +3,7 @@ using MisskeyEmojiNotify.Misskey.ObservableStream;
 using MisskeySharp;
 using MisskeySharp.Entities;
 using MisskeySharp.Streaming;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reactive.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 using Note = MisskeyEmojiNotify.Misskey.Entities.Note;
 
@@ -173,7 +168,7 @@ namespace MisskeyEmojiNotify.Misskey
                 using var stream = new MemoryStream(image.Length);
                 await stream.WriteAsync(image);
                 stream.Seek(0, SeekOrigin.Begin);
-                
+
                 var file = await misskey.Drive.Files.Create(new()
                 {
                     ContentStream = stream,

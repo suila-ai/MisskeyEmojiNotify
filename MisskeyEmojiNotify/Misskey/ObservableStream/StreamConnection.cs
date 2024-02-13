@@ -1,13 +1,6 @@
 ﻿using MisskeySharp;
 using MisskeySharp.Streaming;
-using MisskeySharp.Streaming.Entities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reactive.Linq;
-using System.Text;
-using System.Text.Json;
-using System.Threading.Tasks;
 using Websocket.Client;
 
 namespace MisskeyEmojiNotify.Misskey.ObservableStream
