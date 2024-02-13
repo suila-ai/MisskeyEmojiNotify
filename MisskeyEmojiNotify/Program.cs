@@ -4,7 +4,7 @@
     {
         static async Task Main(string[] _)
         {
-            var jobRunner = await JobRunner.Create();
+            var jobRunner = await IntervalJobRunner.Create();
             if (jobRunner == null) return;
             var dailyJobRunner = new DailyJobRunner(jobRunner);
             var mentionHandler = new MentionHandler(jobRunner);

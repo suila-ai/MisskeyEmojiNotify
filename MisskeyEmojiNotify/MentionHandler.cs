@@ -10,9 +10,9 @@ using System.Threading.Tasks;
 
 namespace MisskeyEmojiNotify
 {
-    internal class MentionHandler(JobRunner jobRunner)
+    internal class MentionHandler(IntervalJobRunner jobRunner)
     {
-        private readonly JobRunner jobRunner = jobRunner;
+        private readonly IntervalJobRunner jobRunner = jobRunner;
         private readonly Random random = new();
 
         public async Task Start()

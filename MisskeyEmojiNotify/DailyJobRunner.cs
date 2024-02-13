@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 
 namespace MisskeyEmojiNotify
 {
-    internal class DailyJobRunner(JobRunner jobRunner)
+    internal class DailyJobRunner(IntervalJobRunner jobRunner)
     {
-        private readonly JobRunner jobRunner = jobRunner;
+        private readonly IntervalJobRunner jobRunner = jobRunner;
 
         public async Task Run()
         {

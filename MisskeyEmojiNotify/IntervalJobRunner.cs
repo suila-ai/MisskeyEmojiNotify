@@ -10,12 +10,12 @@ using System.Threading.Tasks;
 
 namespace MisskeyEmojiNotify
 {
-    internal class JobRunner
+    internal class IntervalJobRunner
     {
         public ApiWrapper ApiWrapper { get; }
         public EmojiStore EmojiStore { get; private set; }
 
-        public static async Task<JobRunner?> Create()
+        public static async Task<IntervalJobRunner?> Create()
         {
             var apiWrapper = await ApiWrapper.Create();
             if (apiWrapper == null) return null;
@@ -32,11 +32,11 @@ namespace MisskeyEmojiNotify
                 if (!result) return null;
             }
 
-            var instance = new JobRunner(apiWrapper, emojiStore);
+            var instance = new IntervalJobRunner(apiWrapper, emojiStore);
             return instance;
         }
 
-        private JobRunner(ApiWrapper apiWrapper, EmojiStore emojiStore)
+        private IntervalJobRunner(ApiWrapper apiWrapper, EmojiStore emojiStore)
         {
             ApiWrapper = apiWrapper;
             EmojiStore = emojiStore;
@@ -58,59 +58,57 @@ namespace MisskeyEmojiNotify
                 var newEmojiStore = new EmojiStore(newEmojis);
                 await newEmojiStore.SaveImages();
 
-                var addList = new List<ArchiveEmoji>();
-                var nameChanges = new List<Change>();
-                var categoryChanges = new List<Change>();
-                var aliasChanges = new List<Change>();
-                var imageChanges = new List<Change>();
-
-                var undeleted = new HashSet<ArchiveEmoji>();
-
-                foreach (var emoji in newEmojiStore)
-                {
-                    var old = EmojiStore.GetByName(emoji.Name);
-                    if (old != null)
-                    {
-                        var change = new Change(old, emoji);
-                        if (emoji.Name != old.Name) nameChanges.Add(change);
-                        if (emoji.Category != old.Category) categoryChanges.Add(change);
-                        if (!emoji.Aliases.SetEquals(old.Aliases)) aliasChanges.Add(change);
-                        if (emoji.ImageHash != null && old.ImageHash != null && emoji.ImageHash != old.ImageHash)
-                            imageChanges.Add(change);
-
-                    }
-                    else
-                    {
-                        old = EmojiStore.GetByImage(emoji.Url);
-                        if (old != null)
-                        {
-                            nameChanges.Add(new(old, emoji));
-                        }
-                        else
-                        {
-                            addList.Add(emoji);
-                        }
-                    }
-
-                    if (old != null) undeleted.Add(old);
-                }
-
-                var deleteList = EmojiStore.Except(undeleted).ToList();
-
-                await PostAddEmojis(addList);
-                await PostDeleteEmojis(deleteList);
-                await PostNameChangeEmojis(nameChanges);
-                await PostCategoryChangeEmojis(categoryChanges);
-                await PostAliasChangeEmojis(aliasChanges);
-                await PostImageChangeEmojis(imageChanges);
+                await CheckDifference(newEmojiStore);
 
                 EmojiStore = newEmojiStore;
                 await EmojiStore.SaveArchive();
 
-                if (addList.Count + imageChanges.Count + deleteList.Count > 0) await UpdateBanner();
-
                 await timer;
             }
+        }
+
+        private async Task CheckDifference(EmojiStore newEmojiStore)
+        {
+            var addList = new List<ArchiveEmoji>();
+            var nameChanges = new List<Change>();
+            var categoryChanges = new List<Change>();
+            var aliasChanges = new List<Change>();
+            var imageChanges = new List<Change>();
+
+            var undeleted = new HashSet<ArchiveEmoji>();
+
+            foreach (var emoji in newEmojiStore)
+            {
+                var old = EmojiStore.GetByName(emoji.Name);
+                if (old != null)
+                {
+                    var change = new Change(old, emoji);
+                    if (emoji.Name != old.Name) nameChanges.Add(change);
+                    if (emoji.Category != old.Category) categoryChanges.Add(change);
+                    if (!emoji.Aliases.SetEquals(old.Aliases)) aliasChanges.Add(change);
+                    if (emoji.ImageHash != null && old.ImageHash != null && emoji.ImageHash != old.ImageHash) imageChanges.Add(change);
+                }
+                else
+                {
+                    old = EmojiStore.GetByImage(emoji.Url);
+
+                    if (old != null) nameChanges.Add(new(old, emoji));
+                    else addList.Add(emoji);
+                }
+
+                if (old != null) undeleted.Add(old);
+            }
+
+            var deleteList = EmojiStore.Except(undeleted).ToList();
+
+            await PostAddEmojis(addList);
+            await PostDeleteEmojis(deleteList);
+            await PostNameChangeEmojis(nameChanges);
+            await PostCategoryChangeEmojis(categoryChanges);
+            await PostAliasChangeEmojis(aliasChanges);
+            await PostImageChangeEmojis(imageChanges);
+
+            if (addList.Count + imageChanges.Count + deleteList.Count > 0) await UpdateBanner();
         }
 
         private async Task PostAddEmojis(List<ArchiveEmoji> emojis)
@@ -243,7 +241,8 @@ namespace MisskeyEmojiNotify
             if (compare < 0) return new(xFloor, y1);
             if (compare > 0) return new(xCeil, y2);
 
-            if (Math.Abs((double)xFloor / y1 - ratio) < Math.Abs((double)xCeil / y2 - ratio)) {
+            if (Math.Abs((double)xFloor / y1 - ratio) < Math.Abs((double)xCeil / y2 - ratio))
+            {
                 return new(xFloor, y1);
             }
             else
