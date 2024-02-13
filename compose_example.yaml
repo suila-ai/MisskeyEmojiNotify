@@ -1,6 +1,6 @@
 services:
   emoji-notify:
-    image: ghcr.io/suila-ai/misskey-emoji-notify:1.1
+    image: ghcr.io/suila-ai/misskey-emoji-notify:1.2
     # ローカルビルド用
     # build: .
 

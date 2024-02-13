@@ -1,18 +1,9 @@
 ﻿using MisskeyEmojiNotify.Misskey.Entities;
 using MisskeyEmojiNotify.Misskey.ObservableStream;
-using MisskeyEmojiNotify.Misskey.ObservableStream.Entities;
 using MisskeySharp;
 using MisskeySharp.Entities;
 using MisskeySharp.Streaming;
-using MisskeySharp.Streaming.Entities;
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reactive.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 
 using Note = MisskeyEmojiNotify.Misskey.Entities.Note;
 
@@ -55,7 +46,6 @@ namespace MisskeyEmojiNotify.Misskey
 
                     Console.Error.WriteLine($"{nameof(CheckVersion)}: {version}");
                 }
-
             }
             catch (Exception ex)
             {
@@ -178,7 +168,7 @@ namespace MisskeyEmojiNotify.Misskey
                 using var stream = new MemoryStream(image.Length);
                 await stream.WriteAsync(image);
                 stream.Seek(0, SeekOrigin.Begin);
-                
+
                 var file = await misskey.Drive.Files.Create(new()
                 {
                     ContentStream = stream,
@@ -217,7 +207,6 @@ namespace MisskeyEmojiNotify.Misskey
                     UntilDate = until.ToUnixTimeMilliseconds()
                 });
 
-
                 while (notes[^1].CreatedAt >= since)
                 {
                     result.AddRange(notes);
@@ -230,7 +219,6 @@ namespace MisskeyEmojiNotify.Misskey
                 }
 
                 result.AddRange(notes.Where(e => e.CreatedAt >= since));
-
             }
             catch (Exception ex)
             {

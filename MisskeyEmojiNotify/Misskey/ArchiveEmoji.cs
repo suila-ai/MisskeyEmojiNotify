@@ -1,5 +1,4 @@
-﻿using ImageMagick;
-using MisskeyEmojiNotify.Misskey.Entities;
+﻿using MisskeyEmojiNotify.Misskey.Entities;
 using System.Security.Cryptography;
 using System.Text.Json.Serialization;
 
