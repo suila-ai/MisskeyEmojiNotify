@@ -71,9 +71,9 @@ namespace MisskeyEmojiNotify
         {
             var addList = new List<ArchiveEmoji>();
             var nameChanges = new List<Change>();
+            var imageChanges = new List<Change>();
             var categoryChanges = new List<Change>();
             var aliasChanges = new List<Change>();
-            var imageChanges = new List<Change>();
 
             var undeleted = new HashSet<ArchiveEmoji>();
 
@@ -84,9 +84,9 @@ namespace MisskeyEmojiNotify
                 {
                     var change = new Change(old, emoji);
                     if (emoji.Name != old.Name) nameChanges.Add(change);
+                    if (emoji.ImageHash != null && old.ImageHash != null && emoji.ImageHash != old.ImageHash) imageChanges.Add(change);
                     if (emoji.Category != old.Category) categoryChanges.Add(change);
                     if (!emoji.Aliases.SetEquals(old.Aliases)) aliasChanges.Add(change);
-                    if (emoji.ImageHash != null && old.ImageHash != null && emoji.ImageHash != old.ImageHash) imageChanges.Add(change);
                 }
                 else
                 {
@@ -104,9 +104,9 @@ namespace MisskeyEmojiNotify
             await PostAddEmojis(addList);
             await PostDeleteEmojis(deleteList);
             await PostNameChangeEmojis(nameChanges);
+            await PostImageChangeEmojis(imageChanges);
             await PostCategoryChangeEmojis(categoryChanges);
             await PostAliasChangeEmojis(aliasChanges);
-            await PostImageChangeEmojis(imageChanges);
 
             if (addList.Count + imageChanges.Count + deleteList.Count > 0) await UpdateBanner();
         }
