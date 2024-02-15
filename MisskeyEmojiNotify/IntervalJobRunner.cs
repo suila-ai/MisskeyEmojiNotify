@@ -109,9 +109,9 @@ namespace MisskeyEmojiNotify
         {
             if (emojis.Count == 0) return;
             var text = "【絵文字追加】\n" + string.Join("\n\n", emojis.Select(e =>
-                $"$[x2 :{e.Name}:] ({e.Name})\n" +
-                $"カテゴリ: {e.Category ?? "(なし)"}\n" +
-                $"タグ: {(e.Aliases.Count > 0 ? string.Join(' ', e.Aliases) : "(なし)")}\n" +
+                $"$[x2 :{e.Name}:] `:{e.Name}:`\n" +
+                $"カテゴリ: <plain>{e.Category ?? "(なし)"}</plain>\n" +
+                $"タグ: <plain>{(e.Aliases.Count > 0 ? string.Join(' ', e.Aliases) : "(なし)")}</plain>\n" +
                 $"{ImageLink("画像", e)}"));
 
             await ApiWrapper.Post(text);
@@ -120,7 +120,7 @@ namespace MisskeyEmojiNotify
         private async Task PostDeleteEmojis(List<ArchiveEmoji> emojis)
         {
             if (emojis.Count == 0) return;
-            var text = "【絵文字削除】\n" + string.Join("\n\n", emojis.Select(e => $"{e.Name}\n{ImageLink("旧画像", e)}"));
+            var text = "【絵文字削除】\n" + string.Join("\n\n", emojis.Select(e => $"`:{e.Name}:`\n{ImageLink("旧画像", e)}"));
 
             await ApiWrapper.Post(text);
         }
@@ -129,7 +129,7 @@ namespace MisskeyEmojiNotify
         {
             if (changes.Count == 0) return;
 
-            var text = "【名前変更】\n" + string.Join("\n\n", changes.Select(e => $"$[x2 :{e.New.Name}:]\n({e.Old.Name} → {e.New.Name})"));
+            var text = "【名前変更】\n" + string.Join("\n\n", changes.Select(e => $"$[x2 :{e.New.Name}:]\n`:{e.Old.Name}:` → `:{e.New.Name}:`"));
             await ApiWrapper.Post(text);
         }
 
@@ -138,7 +138,7 @@ namespace MisskeyEmojiNotify
             foreach (var group in changes.GroupBy(e => (oldCategory: e.Old.Category, newCategory: e.New.Category)))
             {
                 var text = "【カテゴリ変更】\n" +
-                    $"{group.Key.oldCategory ?? "(なし)"} → {group.Key.newCategory ?? "(なし)"}\n" +
+                    $"<plain>{group.Key.oldCategory ?? "(なし)"} → {group.Key.newCategory ?? "(なし)"}</plain>\n" +
                     string.Join(' ', group.Select(e => $":{e.New.Name}:"));
                 await ApiWrapper.Post(text);
             }
@@ -156,9 +156,9 @@ namespace MisskeyEmojiNotify
 
             )).Where(e => e.add.Length > 0 || e.delete.Length > 0).Select(e =>
             {
-                var text = $"$[x2 :{e.name}:] ({e.name})\n";
-                if (e.add.Length > 0) text += $"追加: {e.add}\n";
-                if (e.delete.Length > 0) text += $"削除: {e.delete}\n";
+                var text = $"$[x2 :{e.name}:] `:{e.name}:`\n";
+                if (e.add.Length > 0) text += $"追加: <plain>{e.add}</plain>\n";
+                if (e.delete.Length > 0) text += $"削除: <plain>{e.delete}</plain>\n";
 
                 return text;
             }));
@@ -171,7 +171,7 @@ namespace MisskeyEmojiNotify
             if (changes.Count == 0) return;
 
             var text = "【画像変更】\n" + string.Join("\n\n", changes.Select(e =>
-                $"$[x2 :{e.New.Name}:] ({e.New.Name})\n" +
+                $"$[x2 :{e.New.Name}:] `:{e.New.Name}:`\n" +
                 $"{((e.Old.ActualUrl ?? e.Old.Url) != (e.New.ActualUrl ?? e.New.Url) ? $"{ImageLink("旧画像", e.Old)} " : "")}{ImageLink("新画像", e.New)}"
             ));
 
