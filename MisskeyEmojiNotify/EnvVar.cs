@@ -14,6 +14,8 @@ namespace MisskeyEmojiNotify
         public static string ArchiveFile { get; } = GetEnvVar("MISSKEY_ARCHIVE_FILE", "./archive.json");
         public static string ImageDir { get; } = GetEnvVar("MISSKEY_IMAGE_DIR", "./images");
 
+        public static RequireFollowed RequireFollowed { get; } = GetEnvVar("MISSKEY_REQUIRE_FOLLOWED", RequireFollowed.None, str => Enum.Parse<RequireFollowed>(str, true));
+
         private static string GetEnvVar(string name, string? defaultValue = null)
         {
             var envVar = Environment.GetEnvironmentVariable(name);
@@ -32,8 +34,16 @@ namespace MisskeyEmojiNotify
         private static T GetEnvVar<T>(string name, T defaultValue, Func<string, T> parser)
         {
             var envVar = Environment.GetEnvironmentVariable(name);
-            if (envVar != null) return parser(envVar);
-            return defaultValue;
+            if (envVar == null) return defaultValue;
+
+            try
+            {
+                return parser(envVar);
+            }
+            catch
+            {
+                return defaultValue;
+            }
         }
 
         internal class MissingEnvVarException(string? message) : Exception(message)
