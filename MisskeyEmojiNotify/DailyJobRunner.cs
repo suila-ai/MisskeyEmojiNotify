@@ -31,7 +31,7 @@
             var reactions = notes.SelectMany(e => e.Reactions)
                 .Where(e => Regexes.StandardOrLocalEmoji().IsMatch(e.Key))
                 .GroupBy(e => e.Key)
-                .Select(e => new RankedEmoji(e.Key.Replace("@.", ""), e.Sum(e => e.Value), -1))
+                .Select(e => new RankedEmojis([e.Key.Replace("@.", "")], e.Sum(e => e.Value), -1))
                 .ToArray();
             var reactionsCount = reactions.Sum(e => e.Count);
 
@@ -39,7 +39,7 @@
                 .Select((e, i) => e with { Rank = i })
                 .GroupBy(e => e.Count)
                 .TakeWhile(e => e.Any(e => e.Rank < 10))
-                .SelectMany((e, i) => e.Select(e => e with { Rank = i }))
+                .Select((e, i) => new RankedEmojis(e.SelectMany(e => e.Emojis).ToArray(), e.Key, i))
                 .ToArray();
 
             var text = $"【昨日({yesterday:MM/dd})のリアクション】\n" +
@@ -49,14 +49,14 @@
             await jobRunner.ApiWrapper.Post(text);
         }
 
-        private record RankedEmoji(string Emoji, int Count, int Rank)
+        private record RankedEmojis(IReadOnlyList<string> Emojis, int Count, int Rank)
         {
             public string Format()
             {
                 if (Rank is < 0 or > 9) return string.Empty;
 
                 ReadOnlySpan<string> rankEmojis = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"];
-                var text = $"{rankEmojis[Rank]} {Emoji}";
+                var text = $"{rankEmojis[Rank]} {string.Join("", Emojis)}";
 
                 var mfmText = Rank switch
                 {
