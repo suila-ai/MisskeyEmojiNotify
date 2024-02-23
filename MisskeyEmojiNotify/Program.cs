@@ -1,18 +1,24 @@
-﻿namespace MisskeyEmojiNotify
+﻿using MisskeyEmojiNotify.Misskey;
+
+namespace MisskeyEmojiNotify
 {
     internal class Program
     {
         static async Task Main(string[] _)
         {
-            var jobRunner = await IntervalJobRunner.Create();
-            if (jobRunner == null) return;
-            var dailyJobRunner = new DailyJobRunner(jobRunner);
-            var mentionHandler = new MentionHandler(jobRunner);
+            var apiWrapper = await ApiWrapper.Create();
+            if (apiWrapper == null) return;
+
+            var intervalJobRunner = await IntervalJobRunner.Create(apiWrapper);
+            var dailyJobRunner = new DailyJobRunner(apiWrapper);
+            var mentionHandler = new MentionHandler(apiWrapper);
+
+            if (intervalJobRunner == null) return;
 
             try
             {
                 await Task.WhenAll(
-                    jobRunner.Run(),
+                    intervalJobRunner.Run(),
                     dailyJobRunner.Run(),
                     mentionHandler.Start()
                 );

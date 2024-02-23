@@ -1,8 +1,10 @@
-﻿namespace MisskeyEmojiNotify
+﻿using MisskeyEmojiNotify.Misskey;
+
+namespace MisskeyEmojiNotify
 {
-    internal class DailyJobRunner(IntervalJobRunner jobRunner)
+    internal class DailyJobRunner(ApiWrapper apiWrapper)
     {
-        private readonly IntervalJobRunner jobRunner = jobRunner;
+        private readonly ApiWrapper apiWrapper = apiWrapper;
 
         public async Task Run()
         {
@@ -27,7 +29,7 @@
         {
             var yesterday = today.AddDays(-1);
 
-            var notes = await jobRunner.ApiWrapper.GetLocalNotesForDay(yesterday);
+            var notes = await apiWrapper.GetLocalNotesForDay(yesterday);
             var reactions = notes.SelectMany(e => e.Reactions)
                 .Where(e => Regexes.StandardOrLocalEmoji().IsMatch(e.Key))
                 .GroupBy(e => e.Key)
@@ -46,7 +48,7 @@
                 string.Join("", rankedIn.Select(e => e.Format())) + "\n\n" +
                 $"ノート数: {notes.Count} リアクション数: {reactionsCount}";
 
-            await jobRunner.ApiWrapper.Post(text);
+            await apiWrapper.Post(text);
         }
 
         private record RankedEmojis(IReadOnlyList<string> Emojis, int Count, int Rank)

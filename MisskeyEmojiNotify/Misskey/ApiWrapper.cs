@@ -17,11 +17,11 @@ namespace MisskeyEmojiNotify.Misskey
         private readonly StreamConnection streamConnection;
         private bool isOldVersion;
 
-        public static async Task<ApiWrapper?> Create()
+        public static async Task<ApiWrapper> Create()
         {
             var misskey = new MisskeyService(EnvVar.MisskeyServer);
-
             await misskey.AuthorizeWithAccessTokenAsync(EnvVar.MisskeyToken);
+
             var instance = new ApiWrapper(misskey);
             await instance.CheckVersion();
 

@@ -4,17 +4,14 @@ using System.Reactive.Linq;
 
 namespace MisskeyEmojiNotify
 {
-    internal class IntervalJobRunner
+    internal class IntervalJobRunner(ApiWrapper apiWrapper, EmojiStore emojiStore)
     {
-        public ApiWrapper ApiWrapper { get; }
-        public EmojiStore EmojiStore { get; private set; }
+        private readonly ApiWrapper apiWrapper = apiWrapper;
+        private readonly EmojiStore emojiStore = emojiStore;
 
-        public static async Task<IntervalJobRunner?> Create()
+        public static async Task<IntervalJobRunner?> Create(ApiWrapper apiWrapper)
         {
-            var apiWrapper = await ApiWrapper.Create();
-            if (apiWrapper == null) return null;
-
-            var emojiStore = await EmojiStore.LoadArchive();
+            var emojiStore = await EmojiStore.GetInstance();
             if (emojiStore == null)
             {
                 var emojis = await apiWrapper.GetEmojis();
@@ -30,19 +27,13 @@ namespace MisskeyEmojiNotify
             return instance;
         }
 
-        private IntervalJobRunner(ApiWrapper apiWrapper, EmojiStore emojiStore)
-        {
-            ApiWrapper = apiWrapper;
-            EmojiStore = emojiStore;
-        }
-
         public async Task Run()
         {
             while (true)
             {
                 var timer = Task.Delay(EnvVar.CheckInterval);
 
-                var newEmojis = await ApiWrapper.GetEmojis();
+                var newEmojis = await apiWrapper.GetEmojis();
                 if (newEmojis == null)
                 {
                     await timer;
@@ -52,10 +43,9 @@ namespace MisskeyEmojiNotify
                 var newEmojiStore = new EmojiStore(newEmojis);
                 await newEmojiStore.SaveImages();
 
-                await CheckDifference(EmojiStore, newEmojiStore);
+                await CheckDifference(emojiStore, newEmojiStore);
 
-                EmojiStore = newEmojiStore;
-                await EmojiStore.SaveArchive();
+                await newEmojiStore.SaveArchive();
 
                 await timer;
             }
@@ -114,7 +104,7 @@ namespace MisskeyEmojiNotify
                 $"タグ: <plain>{(e.Aliases.Count > 0 ? string.Join(' ', e.Aliases) : "(なし)")}</plain>\n" +
                 $"{ImageLink("画像", e)}"));
 
-            await ApiWrapper.Post(text);
+            await apiWrapper.Post(text);
         }
 
         private async Task PostDeleteEmojis(List<ArchiveEmoji> emojis)
@@ -122,7 +112,7 @@ namespace MisskeyEmojiNotify
             if (emojis.Count == 0) return;
             var text = "【絵文字削除】\n" + string.Join("\n\n", emojis.Select(e => $"`:{e.Name}:`\n{ImageLink("旧画像", e)}"));
 
-            await ApiWrapper.Post(text);
+            await apiWrapper.Post(text);
         }
 
         private async Task PostNameChangeEmojis(List<Change> changes)
@@ -130,7 +120,7 @@ namespace MisskeyEmojiNotify
             if (changes.Count == 0) return;
 
             var text = "【名前変更】\n" + string.Join("\n\n", changes.Select(e => $"$[x2 :{e.New.Name}:]\n`:{e.Old.Name}:` → `:{e.New.Name}:`"));
-            await ApiWrapper.Post(text);
+            await apiWrapper.Post(text);
         }
 
         private async Task PostCategoryChangeEmojis(List<Change> changes)
@@ -140,7 +130,7 @@ namespace MisskeyEmojiNotify
                 var text = "【カテゴリ変更】\n" +
                     $"<plain>{group.Key.oldCategory ?? "(なし)"} → {group.Key.newCategory ?? "(なし)"}</plain>\n" +
                     string.Join(' ', group.Select(e => $":{e.New.Name}:"));
-                await ApiWrapper.Post(text);
+                await apiWrapper.Post(text);
             }
         }
 
@@ -163,7 +153,7 @@ namespace MisskeyEmojiNotify
                 return text;
             }));
 
-            await ApiWrapper.Post(text);
+            await apiWrapper.Post(text);
         }
 
         private async Task PostImageChangeEmojis(List<Change> changes)
@@ -175,13 +165,13 @@ namespace MisskeyEmojiNotify
                 $"{((e.Old.ActualUrl ?? e.Old.Url) != (e.New.ActualUrl ?? e.New.Url) ? $"{ImageLink("旧画像", e.Old)} " : "")}{ImageLink("新画像", e.New)}"
             ));
 
-            await ApiWrapper.Post(text);
+            await apiWrapper.Post(text);
         }
 
         private async Task UpdateBanner(EmojiStore emojiStore)
         {
             var montage = await CreateMontage(emojiStore);
-            if (!montage.IsEmpty) await ApiWrapper.SetBanner(montage, "image/png");
+            if (!montage.IsEmpty) await apiWrapper.SetBanner(montage, "image/png");
         }
 
         private Task<ReadOnlyMemory<byte>> CreateMontage(EmojiStore emojiStore)
