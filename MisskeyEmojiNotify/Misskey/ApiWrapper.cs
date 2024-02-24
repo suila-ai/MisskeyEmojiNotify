@@ -6,6 +6,7 @@ using MisskeySharp.Streaming;
 using System.Reactive.Linq;
 
 using Note = MisskeyEmojiNotify.Misskey.Entities.Note;
+using User = MisskeyEmojiNotify.Misskey.Entities.User;
 
 namespace MisskeyEmojiNotify.Misskey
 {
@@ -227,6 +228,21 @@ namespace MisskeyEmojiNotify.Misskey
             }
 
             return result;
+        }
+
+        public async Task<User?> GetUser(string id)
+        {
+            try
+            {
+                var user = await misskey.PostAsync<UserParams, User>("users/show", new() { UserId = id });
+                return user;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"{nameof(GetUser)}: {ex}");
+            }
+
+            return null;
         }
 
         public Task<StreamChannel<Note>> GetMentions()
