@@ -192,7 +192,7 @@ namespace MisskeyEmojiNotify.Misskey
             return false;
         }
 
-        public async Task<IReadOnlyList<Note>> GetLocalNotesForDay(DateOnly date)
+        public async Task<IReadOnlyList<Note>?> GetLocalNotesForDay(DateOnly date)
         {
             var result = new List<Note>();
 
@@ -223,6 +223,7 @@ namespace MisskeyEmojiNotify.Misskey
             catch (Exception ex)
             {
                 Console.Error.WriteLine($"{nameof(GetLocalNotesForDay)}: {ex}");
+                return null;
             }
 
             return result;

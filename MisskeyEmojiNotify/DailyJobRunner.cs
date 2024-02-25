@@ -30,6 +30,17 @@ namespace MisskeyEmojiNotify
             var yesterday = today.AddDays(-1);
 
             var notes = await apiWrapper.GetLocalNotesForDay(yesterday);
+
+            var retryCount = 0;
+            while (notes == null)
+            {
+                if (retryCount > 10) return;
+                retryCount++;
+                await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, retryCount)));
+
+                notes = await apiWrapper.GetLocalNotesForDay(yesterday);
+            }
+
             var reactions = notes.SelectMany(e => e.Reactions)
                 .Where(e => Regexes.StandardOrLocalEmoji().IsMatch(e.Key))
                 .GroupBy(e => e.Key)
