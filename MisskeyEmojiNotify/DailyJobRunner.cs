@@ -52,7 +52,7 @@ namespace MisskeyEmojiNotify
                 .Select((e, i) => e with { Rank = i })
                 .GroupBy(e => e.Count)
                 .TakeWhile(e => e.Any(e => e.Rank < 10))
-                .Select((e, i) => new RankedEmojis(e.SelectMany(e => e.Emojis).ToArray(), e.Key, i))
+                .Select(e => new RankedEmojis([.. e.SelectMany(e => e.Emojis)], e.Key, e.Min(e => e.Rank)))
                 .ToArray();
 
             var text = $"【昨日({yesterday:MM/dd})のリアクション】\n" +
