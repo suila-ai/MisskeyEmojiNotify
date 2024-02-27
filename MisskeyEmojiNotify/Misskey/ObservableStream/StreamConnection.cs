@@ -25,9 +25,8 @@ namespace MisskeyEmojiNotify.Misskey.ObservableStream
             };
 
             client.DisconnectionHappened.Subscribe(e =>
-            {
-                Console.Error.WriteLine($"{nameof(StreamConnection)}: Disconnected due to {e.Type}");
-            });
+                Console.Error.WriteLine($"{nameof(StreamConnection)}: Disconnected due to {e.Type}")
+            );
         }
 
         public Task<StreamChannel<T>> Connect<T>(MisskeyStreamingChannels channel, string? type = null)

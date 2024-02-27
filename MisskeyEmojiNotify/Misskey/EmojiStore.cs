@@ -12,6 +12,8 @@ namespace MisskeyEmojiNotify.Misskey
 
         private readonly HttpClient httpClient = new();
 
+        private static EmojiStore? instance = null;
+        private static readonly SemaphoreSlim semaphore = new(1, 1);
         private static readonly JsonSerializerOptions jsonSerializerOptions = new()
         {
             Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
@@ -19,7 +21,24 @@ namespace MisskeyEmojiNotify.Misskey
 
         public int Count => emojisByName.Values.Count;
 
-        public static async Task<EmojiStore?> LoadArchive()
+        public static async Task<EmojiStore?> GetInstance()
+        {
+            await semaphore.WaitAsync();
+
+            try
+            {
+                if (instance != null) return instance;
+
+                instance = await LoadArchive();
+                return instance;
+            }
+            finally
+            {
+                semaphore.Release();
+            }
+        }
+
+        private static async Task<EmojiStore?> LoadArchive()
         {
             try
             {
@@ -62,6 +81,9 @@ namespace MisskeyEmojiNotify.Misskey
         {
             try
             {
+                await semaphore.WaitAsync();
+                instance = this;
+
                 using var stream = File.Open(EnvVar.ArchiveFile, FileMode.Create);
                 await JsonSerializer.SerializeAsync(stream, emojisByName.Values, jsonSerializerOptions);
 
@@ -70,6 +92,10 @@ namespace MisskeyEmojiNotify.Misskey
             catch (Exception ex)
             {
                 Console.Error.WriteLine($"{nameof(SaveArchive)}: {ex}");
+            }
+            finally
+            {
+                semaphore.Release();
             }
 
             return false;

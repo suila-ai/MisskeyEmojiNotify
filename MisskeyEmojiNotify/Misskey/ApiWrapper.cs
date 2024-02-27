@@ -17,11 +17,11 @@ namespace MisskeyEmojiNotify.Misskey
         private readonly StreamConnection streamConnection;
         private bool isOldVersion;
 
-        public static async Task<ApiWrapper?> Create()
+        public static async Task<ApiWrapper> Create()
         {
             var misskey = new MisskeyService(EnvVar.MisskeyServer);
-
             await misskey.AuthorizeWithAccessTokenAsync(EnvVar.MisskeyToken);
+
             var instance = new ApiWrapper(misskey);
             await instance.CheckVersion();
 
@@ -192,7 +192,7 @@ namespace MisskeyEmojiNotify.Misskey
             return false;
         }
 
-        public async Task<IReadOnlyList<Note>> GetLocalNotesForDay(DateOnly date)
+        public async Task<IReadOnlyList<Note>?> GetLocalNotesForDay(DateOnly date)
         {
             var result = new List<Note>();
 
@@ -223,6 +223,7 @@ namespace MisskeyEmojiNotify.Misskey
             catch (Exception ex)
             {
                 Console.Error.WriteLine($"{nameof(GetLocalNotesForDay)}: {ex}");
+                return null;
             }
 
             return result;

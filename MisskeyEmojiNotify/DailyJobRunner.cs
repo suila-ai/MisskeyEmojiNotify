@@ -1,8 +1,10 @@
-﻿namespace MisskeyEmojiNotify
+﻿using MisskeyEmojiNotify.Misskey;
+
+namespace MisskeyEmojiNotify
 {
-    internal class DailyJobRunner(IntervalJobRunner jobRunner)
+    internal class DailyJobRunner(ApiWrapper apiWrapper)
     {
-        private readonly IntervalJobRunner jobRunner = jobRunner;
+        private readonly ApiWrapper apiWrapper = apiWrapper;
 
         public async Task Run()
         {
@@ -27,11 +29,22 @@
         {
             var yesterday = today.AddDays(-1);
 
-            var notes = await jobRunner.ApiWrapper.GetLocalNotesForDay(yesterday);
+            var notes = await apiWrapper.GetLocalNotesForDay(yesterday);
+
+            var retryCount = 0;
+            while (notes == null)
+            {
+                if (retryCount > 10) return;
+                retryCount++;
+                await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, retryCount)));
+
+                notes = await apiWrapper.GetLocalNotesForDay(yesterday);
+            }
+
             var reactions = notes.SelectMany(e => e.Reactions)
                 .Where(e => Regexes.StandardOrLocalEmoji().IsMatch(e.Key))
                 .GroupBy(e => e.Key)
-                .Select(e => new RankedEmoji(e.Key.Replace("@.", ""), e.Sum(e => e.Value), -1))
+                .Select(e => new RankedEmojis([e.Key.Replace("@.", "")], e.Sum(e => e.Value), -1))
                 .ToArray();
             var reactionsCount = reactions.Sum(e => e.Count);
 
@@ -39,24 +52,24 @@
                 .Select((e, i) => e with { Rank = i })
                 .GroupBy(e => e.Count)
                 .TakeWhile(e => e.Any(e => e.Rank < 10))
-                .SelectMany((e, i) => e.Select(e => e with { Rank = i }))
+                .Select(e => new RankedEmojis([.. e.SelectMany(e => e.Emojis)], e.Key, e.Min(e => e.Rank)))
                 .ToArray();
 
             var text = $"【昨日({yesterday:MM/dd})のリアクション】\n" +
                 string.Join("", rankedIn.Select(e => e.Format())) + "\n\n" +
                 $"ノート数: {notes.Count} リアクション数: {reactionsCount}";
 
-            await jobRunner.ApiWrapper.Post(text);
+            await apiWrapper.Post(text);
         }
 
-        private record RankedEmoji(string Emoji, int Count, int Rank)
+        private record RankedEmojis(IReadOnlyList<string> Emojis, int Count, int Rank)
         {
             public string Format()
             {
                 if (Rank is < 0 or > 9) return string.Empty;
 
                 ReadOnlySpan<string> rankEmojis = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"];
-                var text = $"{rankEmojis[Rank]} {Emoji}";
+                var text = $"{rankEmojis[Rank]} {string.Join("", Emojis)}";
 
                 var mfmText = Rank switch
                 {
