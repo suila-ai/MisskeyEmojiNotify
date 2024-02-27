@@ -37,7 +37,7 @@ namespace MisskeyEmojiNotify
 
             if (fields.Length == 0) return null;
 
-            int count = 1;
+            var count = 1;
             var emojis = new List<Emoji>();
 
             var emojiStore = await EmojiStore.GetInstance();

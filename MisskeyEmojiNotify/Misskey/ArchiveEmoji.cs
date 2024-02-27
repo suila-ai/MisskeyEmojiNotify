@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace MisskeyEmojiNotify.Misskey
 {
-    class ArchiveEmoji : Emoji
+    internal class ArchiveEmoji : Emoji
     {
         [JsonPropertyOrder(1000)]
         public string? ActualUrl { get => actualUrl; init => actualUrl = value; }
@@ -31,7 +31,6 @@ namespace MisskeyEmojiNotify.Misskey
             Aliases = emoji.Aliases;
             Url = emoji.Url;
         }
-
 
         public async Task<bool> SyncRemote(bool force = false)
         {

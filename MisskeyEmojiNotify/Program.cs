@@ -4,7 +4,7 @@ namespace MisskeyEmojiNotify
 {
     internal class Program
     {
-        static async Task Main(string[] _)
+        public static async Task Main(string[] _)
         {
             var apiWrapper = await ApiWrapper.Create();
             if (apiWrapper == null) return;

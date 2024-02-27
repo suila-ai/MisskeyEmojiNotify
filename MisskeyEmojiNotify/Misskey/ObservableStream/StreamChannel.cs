@@ -56,7 +56,6 @@ namespace MisskeyEmojiNotify.Misskey.ObservableStream
             return instance;
         }
 
-
         public void Disconnect()
         {
             var message = JsonSerializer.Serialize(new DisconnectMessage(id));
