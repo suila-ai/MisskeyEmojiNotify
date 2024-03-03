@@ -216,7 +216,6 @@ namespace MisskeyEmojiNotify
             });
         }
 
-
         private static MagickGeometry CalcTileGeometry(int count, double ratio)
         {
             var x = Math.Sqrt(count * ratio);
@@ -228,7 +227,6 @@ namespace MisskeyEmojiNotify
             var y2 = (int)Math.Ceiling((double)count / xCeil);
 
             var compare = (xFloor * y1).CompareTo(xCeil * y2);
-
 
             if (compare < 0) return new(xFloor, y1);
             if (compare > 0) return new(xCeil, y2);

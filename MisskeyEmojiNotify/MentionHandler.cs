@@ -16,6 +16,12 @@ namespace MisskeyEmojiNotify
 
             await mentions.Where(e => !e.User.IsBot).Select(note => Observable.FromAsync(async () =>
             {
+                if (EnvVar.RequireFollowed == RequireFollowed.All || (EnvVar.RequireFollowed == RequireFollowed.Remote && note.User.Host != null))
+                {
+                    var user = await apiWrapper.GetUser(note.User.Id);
+                    if (user?.IsFollowed != true) return;
+                }
+
                 var results = await Task.WhenAll(
                     GachaHander(note)
                 );
