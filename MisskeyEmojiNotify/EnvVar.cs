@@ -16,6 +16,8 @@ namespace MisskeyEmojiNotify
 
         public static RequireFollowed RequireFollowed { get; } = GetEnvVar("MISSKEY_REQUIRE_FOLLOWED", RequireFollowed.None, str => Enum.Parse<RequireFollowed>(str, true));
 
+        public static IReadOnlySet<string> FortuneCategories { get; } = GetEnvVar("MISSKEY_FORTUNE_CATEGORIES", [], str => str.Split('\n').ToHashSet());
+
         private static string GetEnvVar(string name, string? defaultValue = null)
         {
             var envVar = Environment.GetEnvironmentVariable(name);

@@ -22,6 +22,9 @@ services:
       MISSKEY_IMAGE_DIR: /app/data/images
       # 非フォロワーからのメンションを無視 有効値: none, remote, all
       MISSKEY_REQUIRE_FOLLOWED: none
+      # 占いで使用するカテゴリ(改行で複数指定)
+      MISSKEY_FORTUNE_CATEGORIES: |-
+        TEXT
 
     volumes:
       - "./data:/app/data"
