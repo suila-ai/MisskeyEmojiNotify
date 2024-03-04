@@ -95,7 +95,7 @@ namespace MisskeyEmojiNotify
             if (addList.Count + imageChanges.Count + deleteList.Count > 0) await UpdateBanner(newEmojiStore);
         }
 
-        private async Task PostAddEmojis(List<ArchiveEmoji> emojis)
+        private async ValueTask PostAddEmojis(List<ArchiveEmoji> emojis)
         {
             if (emojis.Count == 0) return;
             var text = "【絵文字追加】\n" + string.Join("\n\n", emojis.Select(e =>
@@ -107,7 +107,7 @@ namespace MisskeyEmojiNotify
             await apiWrapper.Post(text);
         }
 
-        private async Task PostDeleteEmojis(List<ArchiveEmoji> emojis)
+        private async ValueTask PostDeleteEmojis(List<ArchiveEmoji> emojis)
         {
             if (emojis.Count == 0) return;
             var text = "【絵文字削除】\n" + string.Join("\n\n", emojis.Select(e => $"`:{e.Name}:`\n{ImageLink("旧画像", e)}"));
@@ -115,7 +115,7 @@ namespace MisskeyEmojiNotify
             await apiWrapper.Post(text);
         }
 
-        private async Task PostNameChangeEmojis(List<Change> changes)
+        private async ValueTask PostNameChangeEmojis(List<Change> changes)
         {
             if (changes.Count == 0) return;
 
@@ -123,7 +123,7 @@ namespace MisskeyEmojiNotify
             await apiWrapper.Post(text);
         }
 
-        private async Task PostCategoryChangeEmojis(List<Change> changes)
+        private async ValueTask PostCategoryChangeEmojis(List<Change> changes)
         {
             foreach (var group in changes.GroupBy(e => (oldCategory: e.Old.Category, newCategory: e.New.Category)))
             {
@@ -134,7 +134,7 @@ namespace MisskeyEmojiNotify
             }
         }
 
-        private async Task PostAliasChangeEmojis(List<Change> changes)
+        private async ValueTask PostAliasChangeEmojis(List<Change> changes)
         {
             if (changes.Count == 0) return;
 
@@ -156,7 +156,7 @@ namespace MisskeyEmojiNotify
             await apiWrapper.Post(text);
         }
 
-        private async Task PostImageChangeEmojis(List<Change> changes)
+        private async ValueTask PostImageChangeEmojis(List<Change> changes)
         {
             if (changes.Count == 0) return;
 

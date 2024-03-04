@@ -67,13 +67,13 @@ namespace MisskeyEmojiNotify.Misskey
 
         public ArchiveEmoji? GetByName(string name)
         {
-            emojisByName.TryGetValue(name, out ArchiveEmoji? result);
+            emojisByName.TryGetValue(name, out var result);
             return result;
         }
 
         public ArchiveEmoji? GetByImage(string url)
         {
-            emojisByImage.TryGetValue(url, out ArchiveEmoji? result);
+            emojisByImage.TryGetValue(url, out var result);
             return result;
         }
 
