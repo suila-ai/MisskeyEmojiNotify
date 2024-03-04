@@ -22,20 +22,33 @@ namespace MisskeyEmojiNotify
                     if (user?.IsFollowed != true) return;
                 }
 
-                var results = await Task.WhenAll(
-                    GachaHander(note)
-                );
+                var result = await HandleAll(note, [
+                    GachaHander,
+                ]);
 
-                var notHandled = results.All(e => e == null);
-                if (notHandled) await apiWrapper.Reaction(note, "❓");
+                var reaction = result switch
+                {
+                    true => null,
+                    false => "⚠️",
+                    null => "❓",
+                };
 
-                var failed = results.Any(e => e == false);
-                if (failed) await apiWrapper.Reaction(note, "⚠️");
-
+                if (reaction != null) await apiWrapper.Reaction(note, reaction);
             })).Concat();
         }
 
-        public async Task<bool?> GachaHander(Note note)
+        private static async Task<bool?> HandleAll(Note note, IReadOnlyList<Func<Note, Task<bool?>>> handlers)
+        {
+            foreach (var handler in handlers)
+            {
+                var result = await handler(note);
+                if (result != null) return result;
+            }
+
+            return null;
+        }
+
+        private async Task<bool?> GachaHander(Note note)
         {
             var text = $"{note.Cw ?? ""}\n{note.Text ?? ""}";
 
