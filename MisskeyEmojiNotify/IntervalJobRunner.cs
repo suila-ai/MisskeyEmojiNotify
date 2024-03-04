@@ -4,28 +4,9 @@ using System.Reactive.Linq;
 
 namespace MisskeyEmojiNotify
 {
-    internal class IntervalJobRunner(ApiWrapper apiWrapper, EmojiStore emojiStore)
+    internal class IntervalJobRunner(ApiWrapper apiWrapper)
     {
         private readonly ApiWrapper apiWrapper = apiWrapper;
-        private readonly EmojiStore emojiStore = emojiStore;
-
-        public static async Task<IntervalJobRunner?> Create(ApiWrapper apiWrapper)
-        {
-            var emojiStore = await EmojiStore.GetInstance();
-            if (emojiStore == null)
-            {
-                var emojis = await apiWrapper.GetEmojis();
-                if (emojis == null) return null;
-
-                emojiStore = new EmojiStore(emojis);
-                await emojiStore.SaveImages(true);
-                var result = await emojiStore.SaveArchive();
-                if (!result) return null;
-            }
-
-            var instance = new IntervalJobRunner(apiWrapper, emojiStore);
-            return instance;
-        }
 
         public async Task Run()
         {
@@ -43,7 +24,11 @@ namespace MisskeyEmojiNotify
                 var newEmojiStore = new EmojiStore(newEmojis);
                 await newEmojiStore.SaveImages();
 
-                await CheckDifference(emojiStore, newEmojiStore);
+                var emojiStore = await EmojiStore.GetInstance();
+                if (emojiStore != null)
+                {
+                    await CheckDifference(emojiStore, newEmojiStore);
+                }
 
                 await newEmojiStore.SaveArchive();
 
