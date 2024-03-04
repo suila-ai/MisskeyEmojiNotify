@@ -8,13 +8,12 @@ namespace MisskeyEmojiNotify
     internal class MentionHandler(ApiWrapper apiWrapper)
     {
         private readonly ApiWrapper apiWrapper = apiWrapper;
-        private readonly Random random = new();
 
         public async Task Start()
         {
             var mentions = await apiWrapper.GetMentions();
 
-            await mentions.Where(e => !e.User.IsBot).Select(note => Observable.FromAsync(async () =>
+            await mentions.Where(e => !e.User.IsBot).Select(async note =>
             {
                 if (EnvVar.RequireFollowed == RequireFollowed.All || (EnvVar.RequireFollowed == RequireFollowed.Remote && note.User.Host != null))
                 {
@@ -24,6 +23,7 @@ namespace MisskeyEmojiNotify
 
                 var result = await HandleAll(note, [
                     GachaHander,
+                    FortuneHandler,
                 ]);
 
                 var reaction = result switch
@@ -34,10 +34,10 @@ namespace MisskeyEmojiNotify
                 };
 
                 if (reaction != null) await apiWrapper.Reaction(note, reaction);
-            })).Concat();
+            });
         }
 
-        private static async Task<bool?> HandleAll(Note note, IReadOnlyList<Func<Note, Task<bool?>>> handlers)
+        private static async Task<bool?> HandleAll(Note note, IReadOnlyList<Func<Note, ValueTask<bool?>>> handlers)
         {
             foreach (var handler in handlers)
             {
@@ -48,7 +48,7 @@ namespace MisskeyEmojiNotify
             return null;
         }
 
-        private async Task<bool?> GachaHander(Note note)
+        private async ValueTask<bool?> GachaHander(Note note)
         {
             var text = $"{note.Cw ?? ""}\n{note.Text ?? ""}";
 
@@ -76,10 +76,43 @@ namespace MisskeyEmojiNotify
 
             if (emojis.Count == 0) emojis.AddRange(emojiStore);
 
+            var random = new Random();
             var result = string.Join("", Enumerable.Range(0, count).Select(_ => emojis[random.Next(emojis.Count)]).Select(e => $":{e.Name}:"));
-            await apiWrapper.Reply(note, result);
+            return await apiWrapper.Reply(note, result);
+        }
 
-            return true;
+        private async ValueTask<bool?> FortuneHandler(Note note)
+        {
+            IReadOnlyList<string> keywords = ["占", "うらな", "運勢", "おみくじ"];
+
+            if (note.Text == null || !keywords.Any(note.Text.Contains)) return null;
+
+            IReadOnlyList<Emoji> emojis = [.. await EmojiStore.GetInstance()];
+            if (emojis == null) return false;
+
+            var fortuneEmojis = EnvVar.FortuneCategories switch
+            {
+                { Count: 0 } => emojis,
+                _ => [.. emojis.Where(e => e.Category != null && EnvVar.FortuneCategories.Contains(e.Category))],
+            };
+
+            if (fortuneEmojis.Count == 0) return false;
+
+            var random = new Random($"{DateTime.Now:yyyyMMdd}{note.User.Id}".GetHashCode());
+
+            var fortuneEmoji = fortuneEmojis[random.Next(fortuneEmojis.Count)];
+            var fortuneSuffix = random.Next(3) switch
+            {
+                < 2 => "吉",
+                _ => "凶",
+            };
+            var luckeyEmoji = emojis[random.Next(emojis.Count)];
+
+            var text = "今日のあなたの運勢は\n" +
+                $":{fortuneEmoji.Name}:{fortuneSuffix}\n" +
+                $"幸運の絵文字: :{luckeyEmoji.Name}:";
+
+            return await apiWrapper.Reply(note, text);
         }
     }
 }
