@@ -9,7 +9,7 @@ namespace MisskeyEmojiNotify
             var apiWrapper = await ApiWrapper.Create();
             if (apiWrapper == null) return;
 
-            var intervalJobRunner = await IntervalJobRunner.Create(apiWrapper);
+            var intervalJobRunner = new IntervalJobRunner(apiWrapper);
             var dailyJobRunner = new DailyJobRunner(apiWrapper);
             var mentionHandler = new MentionHandler(apiWrapper);
 
