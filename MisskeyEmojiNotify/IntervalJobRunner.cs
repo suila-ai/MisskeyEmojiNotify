@@ -70,14 +70,20 @@ namespace MisskeyEmojiNotify
 
             var deleteList = oldEmojiStore.Except(undeleted).ToList();
 
-            await PostAddEmojis(addList);
-            await PostDeleteEmojis(deleteList);
-            await PostNameChangeEmojis(nameChanges);
-            await PostImageChangeEmojis(imageChanges);
-            await PostCategoryChangeEmojis(categoryChanges);
-            await PostAliasChangeEmojis(aliasChanges);
+            if (!EnvVar.DisableFunctions.Contains(Function.UpdateNotify))
+            {
+                await PostAddEmojis(addList);
+                await PostDeleteEmojis(deleteList);
+                await PostNameChangeEmojis(nameChanges);
+                await PostImageChangeEmojis(imageChanges);
+                await PostCategoryChangeEmojis(categoryChanges);
+                await PostAliasChangeEmojis(aliasChanges);
+            }
 
-            if (addList.Count + imageChanges.Count + deleteList.Count > 0) await UpdateBanner(newEmojiStore);
+            if (!EnvVar.DisableFunctions.Contains(Function.GenerateBanner) && addList.Count + imageChanges.Count + deleteList.Count > 0)
+            {
+                await UpdateBanner(newEmojiStore);
+            }
         }
 
         private async ValueTask PostAddEmojis(List<ArchiveEmoji> emojis)

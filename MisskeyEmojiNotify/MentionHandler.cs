@@ -50,6 +50,8 @@ namespace MisskeyEmojiNotify
 
         private async ValueTask<bool?> GachaHander(Note note)
         {
+            if (EnvVar.DisableFunctions.Contains(Function.Gacha)) return null;
+
             var text = $"{note.Cw ?? ""}\n{note.Text ?? ""}";
 
             var fields = Ssv.Parse(text).SkipWhile(e => e is not ("ガチャ" or "gacha")).ToArray();
@@ -83,6 +85,8 @@ namespace MisskeyEmojiNotify
 
         private async ValueTask<bool?> FortuneHandler(Note note)
         {
+            if (EnvVar.DisableFunctions.Contains(Function.Fortune)) return null;
+
             IReadOnlyList<string> keywords = ["占", "うらな", "運勢", "おみくじ"];
 
             if (note.Text == null || !keywords.Any(note.Text.Contains)) return null;
