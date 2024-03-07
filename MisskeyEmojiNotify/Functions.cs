@@ -2,6 +2,7 @@
 {
     internal enum Function
     {
+        None,
         UpdateNotify,
         GenerateBanner,
         DailyRanking,

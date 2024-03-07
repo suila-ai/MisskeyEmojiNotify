@@ -14,7 +14,12 @@ namespace MisskeyEmojiNotify
         public static string ArchiveFile { get; } = GetEnvVar("MISSKEY_ARCHIVE_FILE", "./archive.json");
         public static string ImageDir { get; } = GetEnvVar("MISSKEY_IMAGE_DIR", "./images");
 
-        public static IReadOnlySet<Function> DisableFunctions { get; } = GetEnvVar("MISSKEY_DISABLE_FUNCTIONS", [], str => str.Split('\n').Select(e => Enum.Parse<Function>(e, true)).ToHashSet());
+        public static IReadOnlySet<Function> DisableFunctions { get; } = GetEnvVar("MISSKEY_DISABLE_FUNCTIONS", [],
+            str => str.Split(',').Select(e => {
+                if (Enum.TryParse<Function>(e.Trim(), true, out var result)) return result;
+                return Function.None;
+            }).Where(e => e != Function.None).ToHashSet()
+        );
 
         public static RequireFollowed RequireFollowed { get; } = GetEnvVar("MISSKEY_REQUIRE_FOLLOWED", RequireFollowed.None, str => Enum.Parse<RequireFollowed>(str, true));
 
