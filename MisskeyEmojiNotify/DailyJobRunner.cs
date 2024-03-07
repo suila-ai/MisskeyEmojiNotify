@@ -16,7 +16,10 @@ namespace MisskeyEmojiNotify
 
                 if (lastRun < today)
                 {
-                    await AggregateRanking(today);
+                    if (!EnvVar.DisableFunctions.Contains(Function.DailyRanking))
+                    {
+                        await AggregateRanking(today);
+                    }
 
                     lastRun = today;
                 }
