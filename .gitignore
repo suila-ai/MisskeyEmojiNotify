@@ -362,4 +362,6 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 
-/MisskeyEmojiNotify/Properties/launchSettings.json
+MisskeyEmojiNotify/Properties/launchSettings.json
+compose.yaml
+data/
