@@ -1,10 +1,11 @@
-FROM mcr.microsoft.com/dotnet/sdk:8.0 as build
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:8.0 as build
+ARG TARGETARCH
 
 WORKDIR /workspace
 COPY . .
 
-RUN dotnet restore
-RUN dotnet publish -c Release -o out
+RUN dotnet restore -a $TARGETARCH
+RUN dotnet publish -c Release -o out -a $TARGETARCH
 
 FROM mcr.microsoft.com/dotnet/runtime:8.0
 
