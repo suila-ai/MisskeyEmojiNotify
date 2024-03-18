@@ -59,7 +59,11 @@ namespace MisskeyEmojiNotify
                 .ToArray();
 
             var text = $"【昨日({yesterday:MM/dd})のリアクション】\n" +
-                string.Join("", rankedIn.Select(e => e.Format())) + "\n\n" +
+                string.Join("\n",
+                    rankedIn
+                        .GroupBy(e => e.Rank switch { 0 => 0, < 3 => 1, _ => 2 })
+                        .Select(e => string.Join("  ", e.Select(e => e.Format())))
+                ) + "\n\n" +
                 $"ノート数: {notes.Count} リアクション数: {reactionsCount}";
 
             await apiWrapper.Post(text);
@@ -76,9 +80,8 @@ namespace MisskeyEmojiNotify
 
                 var mfmText = Rank switch
                 {
-                    0 => $"$[x2 {text}] x{Count}\n",
-                    2 => $"{text} x{Count}\n",
-                    _ => $"{text} x{Count}  ",
+                    0 => $"$[x2 {text}] x{Count}",
+                    _ => $"{text} x{Count}",
                 };
 
                 return mfmText;
