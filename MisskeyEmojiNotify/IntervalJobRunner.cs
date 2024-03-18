@@ -92,7 +92,7 @@ namespace MisskeyEmojiNotify
             var text = "【絵文字追加】\n" + string.Join("\n\n", emojis.Select(e =>
                 $"$[x2 :{e.Name}:] `:{e.Name}:`\n" +
                 $"カテゴリ: <plain>{e.Category ?? "(なし)"}</plain>\n" +
-                $"タグ: <plain>{(e.Aliases.Count > 0 ? string.Join(' ', e.Aliases) : "(なし)")}</plain>\n" +
+                $"タグ: <plain>{(e.Aliases.Any(e => e != "") ? string.Join(' ', e.Aliases) : "(なし)")}</plain>\n" +
                 $"{ImageLink("画像", e)}"));
 
             await apiWrapper.Post(text);
@@ -132,8 +132,8 @@ namespace MisskeyEmojiNotify
             var text = "【タグ変更】\n" + string.Join("\n", changes.Select(e =>
             (
                 name: e.New.Name,
-                add: string.Join(' ', e.New.Aliases.Except(e.Old.Aliases)),
-                delete: string.Join(' ', e.Old.Aliases.Except(e.New.Aliases))
+                add: string.Join(' ', e.New.Aliases.Except(e.Old.Aliases).Where(e => e != "")),
+                delete: string.Join(' ', e.Old.Aliases.Except(e.New.Aliases).Where(e => e != ""))
 
             )).Where(e => e.add.Length > 0 || e.delete.Length > 0).Select(e =>
             {
