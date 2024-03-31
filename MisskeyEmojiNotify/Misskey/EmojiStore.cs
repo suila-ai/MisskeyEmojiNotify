@@ -58,6 +58,7 @@ namespace MisskeyEmojiNotify.Misskey
         {
             foreach (var emoji in emojis)
             {
+                if (emojisByName.ContainsKey(emoji.Name) || emojisByImage.ContainsKey(emoji.Url)) continue;
                 emojisByName.Add(emoji.Name, emoji);
                 emojisByImage.Add(emoji.Url, emoji);
             }
